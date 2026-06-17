@@ -43,8 +43,24 @@ unsigned short *nds_sprite_palette_sub(void);
 unsigned short *nds_sprite_gfx(void);
 unsigned short *nds_sprite_gfx_sub(void);
 
-// BG_PALETTE pointer macro.
+// BG_PALETTE / BG_GFX pointer macros.
 unsigned short *nds_bg_palette(void);
+unsigned short *nds_bg_gfx(void);
+
+// CHAR_BASE_BLOCK / SCREEN_BASE_BLOCK address macros, and a BGCTRL[] register
+// setter (used by the tilemap example).
+void *nds_char_base_block(int n);
+void *nds_screen_base_block(int n);
+void nds_set_bgctrl(int layer, unsigned value);
+
+// BGCTRL value for a 256-colour 32x32 text background at the given bases.
+unsigned nds_bgctrl_value_256(int tileBase, int mapBase);
+
+// FIFO packed-command ids (REG2ID macros) for hand-built display lists.
+unsigned char nds_fifo_begin(void);
+unsigned char nds_fifo_color(void);
+unsigned char nds_fifo_vertex16(void);
+unsigned char nds_fifo_end(void);
 
 // GFX_TEX_COORD register: submit a pre-packed (TEXTURE_PACK) texcoord.
 void nds_set_tex_coord(unsigned packed);

@@ -6,6 +6,7 @@
 
 #include <nds.h>
 #include <nds/arm9/postest.h>   // 3D position test (picking) -- not pulled in by nds.h
+#include <stdlib.h>             // rand(), malloc(), ...
 #include "shim.h"
 
 #endif // SWIFT_NDS_UMBRELLA_H

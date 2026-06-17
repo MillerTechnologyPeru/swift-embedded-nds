@@ -65,6 +65,31 @@ unsigned short *nds_bg_palette(void) {
 	return BG_PALETTE;
 }
 
+unsigned short *nds_bg_gfx(void) {
+	return BG_GFX;
+}
+
+void *nds_char_base_block(int n) {
+	return (void *)CHAR_BASE_BLOCK(n);
+}
+
+void *nds_screen_base_block(int n) {
+	return (void *)SCREEN_BASE_BLOCK(n);
+}
+
+void nds_set_bgctrl(int layer, unsigned value) {
+	BGCTRL[layer] = value;
+}
+
+unsigned nds_bgctrl_value_256(int tileBase, int mapBase) {
+	return BG_TILE_BASE(tileBase) | BG_MAP_BASE(mapBase) | BG_COLOR_256 | BG_32x32;
+}
+
+unsigned char nds_fifo_begin(void)    { return FIFO_BEGIN; }
+unsigned char nds_fifo_color(void)    { return FIFO_COLOR; }
+unsigned char nds_fifo_vertex16(void) { return FIFO_VERTEX16; }
+unsigned char nds_fifo_end(void)      { return FIFO_END; }
+
 void nds_set_tex_coord(unsigned packed) {
 	GFX_TEX_COORD = packed;
 }
