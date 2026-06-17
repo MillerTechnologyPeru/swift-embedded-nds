@@ -16,7 +16,10 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [stopwatch](stopwatch)           | `time/stopwatch`            | Hardware timer elapsed/pause, formatted output |
 | [timercallback](timercallback)   | `time/timercallback`        | Timer IRQ callback (C function pointer), PSG sound |
 | [keyboard_stdin](keyboard_stdin) | `input/keyboard/keyboard_stdin` | On-screen keyboard, callback field, `iscanf` stdin |
+| [keyboard_async](keyboard_async) | `input/keyboard/keyboard_async` | Polled keyboard via `keyboardUpdate` |
 | [sprites_simple](sprites_simple) | `Graphics/Sprites/simple`   | OAM sprites on both engines, VRAM banks, palettes |
+| [touch_test](touch_test)         | `input/Touch_Pad/touch_test` | **grit-converted sprite**, OAM, touch min/max tracking |
+| [custom_font](custom_font)       | `Graphics/Printing/custom_font` | **grit bitmap font** loaded into a console |
 | [simple_tri](simple_tri)         | `Graphics/3D/Simple_Tri`    | 3D engine, GL pipeline, fixed-point + float GL calls |
 | [simple_quad](simple_quad)       | `Graphics/3D/Simple_Quad`   | 3D `GL_QUAD`, D-pad rotation |
 | [exception_test](exception_test) | `debugging/exceptionTest`   | Default exception handler, raw memory access |
@@ -43,7 +46,21 @@ make SWIFTC=/path/to/swiftc      # if swiftc isn't the Embedded toolchain on PAT
 
 Everything shared lives in [common/](common); each example is just a
 `source/main.swift` plus a three-line Makefile that sets `TARGET` and
-`include`s [common/common.mk](common/common.mk).
+`include`s [common/common.mk](common/common.mk). Examples with graphics set
+`GRAPHICS := gfx` to point at a directory of `.png`/`.bmp` + `.grit` pairs.
+
+### Graphics assets (grit)
+
+For examples that set `GRAPHICS`, [common.mk](common/common.mk) runs **grit** on
+each image, compiles the generated data, and gathers the generated headers into
+a single bridging header handed to Swift — so the grit symbols (`ballTiles`,
+`fontPal`, …) are visible alongside `import CNDS`.
+
+A C global array imports into Swift as a **tuple**, not a pointer, so asset data
+is reached with `withUnsafeBytes(of: ballTiles) { … }`. That's fine for copying
+into VRAM, and also for APIs like `consoleSetFont` that copy during the call
+(do the call inside the closure). An asset pointer that must outlive the call
+would need a small per-asset C accessor instead.
 
 ### The build pipeline ([common.mk](common/common.mk))
 
@@ -102,9 +119,19 @@ Bridges the gaps between Embedded Swift and libnds:
   directly (no `.rawValue`). `DutyCycle_50` is a macro alias for the importable
   enum `SoundDuty_50`.
 
-## Not ported
+## Remaining
 
-Examples that depend on an **asset pipeline** (grit-converted graphics,
-`mmutil` soundbanks, NitroFS filesystems) are out of scope here — that tooling
-is orthogonal to writing the program in Swift. The scaffolding in `common/`
-applies to them unchanged once their assets are built.
+The ported set above covers every major interop pattern: console, timers, IRQ
+callbacks, PSG sound, input/keyboard, sprites/OAM, 3D/GL, and grit graphics.
+What's left in the upstream example tree still needs its *own* toolchain or
+runtime work, not just more of the same translation:
+
+- **Audio** (`audio/maxmod/*`) — needs the `mmutil` soundbank pipeline.
+- **Binary blobs** (`bin2o`) — 3D display lists, some backgrounds.
+- **Filesystem** (`filesystem/*`) — libfat + DLDI / NitroFS.
+- **Wi-Fi** (`dswifi/*`) — the dswifi stack.
+- **Dual-CPU** (`pxi/*`, combined templates) — a separate ARM7 binary.
+- **Large GL2D demos** (`Graphics/gl2d/*`) — big, asset-heavy.
+
+The `common/` scaffolding (and the grit pipeline) applies to the asset-heavy
+graphics ones unchanged; the others are each a distinct piece of plumbing.

@@ -44,6 +44,14 @@ unsigned short *nds_sprite_palette_sub(void) {
 	return SPRITE_PALETTE_SUB;
 }
 
+unsigned short *nds_sprite_gfx(void) {
+	return SPRITE_GFX;
+}
+
+unsigned short *nds_sprite_gfx_sub(void) {
+	return SPRITE_GFX_SUB;
+}
+
 //---------------------------------------------------------------------------------
 // Runtime support the Embedded Swift object needs but devkitARM's libc/libgcc
 // do not provide for this target.

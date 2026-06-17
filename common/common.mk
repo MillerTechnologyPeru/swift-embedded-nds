@@ -72,6 +72,34 @@ SWIFTFLAGS	:=	-target armv4t-none-none-eabi \
 OFILES		:=	$(BUILD)/main.swift.o $(BUILD)/shim.o
 
 #---------------------------------------------------------------------------------
+# Optional grit graphics pipeline.
+#
+# An example sets GRAPHICS to a directory of <name>.png + <name>.grit pairs.
+# grit converts each into $(BUILD)/<name>.s (data) and $(BUILD)/<name>.h (extern
+# declarations). The .s is compiled and linked in; the headers are gathered into
+# $(BUILD)/assets.h, which is handed to Swift as a bridging header so the
+# generated symbols (e.g. ballTiles, ballPal) are visible alongside `import CNDS`.
+#---------------------------------------------------------------------------------
+GRAPHICS	?=
+
+ifneq ($(strip $(GRAPHICS)),)
+vpath %.png  $(GRAPHICS)
+vpath %.bmp  $(GRAPHICS)
+vpath %.grit $(GRAPHICS)
+
+PNGFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.png)))
+BMPFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.bmp)))
+GFXBASES	:=	$(PNGFILES:.png=) $(BMPFILES:.bmp=)
+GFX_H		:=	$(addprefix $(BUILD)/,$(addsuffix .h,$(GFXBASES)))
+GFX_O		:=	$(addprefix $(BUILD)/,$(addsuffix .o,$(GFXBASES)))
+ASSETS_H	:=	$(BUILD)/assets.h
+
+OFILES		+=	$(GFX_O)
+SWIFTFLAGS	+=	-Xcc -I$(BUILD) -import-objc-header $(ASSETS_H)
+SWIFTDEPS	:=	$(ASSETS_H) $(GFX_H)
+endif
+
+#---------------------------------------------------------------------------------
 .PHONY: all clean
 
 all: $(TARGET).nds
@@ -79,8 +107,28 @@ all: $(TARGET).nds
 $(BUILD):
 	@mkdir -p $@
 
+# grit: image (+ .grit options) -> assembly data + extern header
+$(BUILD)/%.s $(BUILD)/%.h: %.png %.grit | $(BUILD)
+	@echo grit $(notdir $<)
+	grit $< -fts -o$(BUILD)/$*
+
+$(BUILD)/%.s $(BUILD)/%.h: %.bmp %.grit | $(BUILD)
+	@echo grit $(notdir $<)
+	grit $< -fts -o$(BUILD)/$*
+
+# generated data -> object (devkitARM)
+$(BUILD)/%.o: $(BUILD)/%.s
+	@echo $(notdir $<)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# gather generated headers into one bridging header for Swift
+$(ASSETS_H): $(GFX_H) | $(BUILD)
+	@printf '#ifndef SWIFT_NDS_ASSETS_H\n#define SWIFT_NDS_ASSETS_H\n' > $@
+	@for h in $(notdir $(GFX_H)); do printf '#include "%s"\n' "$$h" >> $@; done
+	@printf '#endif\n' >> $@
+
 # Swift -> object
-$(BUILD)/main.swift.o: source/main.swift $(COMMON)module.modulemap $(COMMON)nds_umbrella.h $(COMMON)shim.h | $(BUILD)
+$(BUILD)/main.swift.o: source/main.swift $(COMMON)module.modulemap $(COMMON)nds_umbrella.h $(COMMON)shim.h $(SWIFTDEPS) | $(BUILD)
 	@echo compiling $(notdir $<)
 	$(SWIFTC) $(SWIFTFLAGS) -c $< -o $@
 

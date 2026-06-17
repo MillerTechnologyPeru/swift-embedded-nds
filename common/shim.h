@@ -35,4 +35,8 @@ void nds_scanf_str(char *buf);
 unsigned short *nds_sprite_palette(void);
 unsigned short *nds_sprite_palette_sub(void);
 
+// SPRITE_GFX / SPRITE_GFX_SUB pointer macros.
+unsigned short *nds_sprite_gfx(void);
+unsigned short *nds_sprite_gfx_sub(void);
+
 #endif // SWIFT_NDS_SHIM_H
