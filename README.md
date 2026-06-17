@@ -17,6 +17,8 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [timercallback](timercallback)   | `time/timercallback`        | Timer IRQ callback (C function pointer), PSG sound |
 | [keyboard_stdin](keyboard_stdin) | `input/keyboard/keyboard_stdin` | On-screen keyboard, callback field, `iscanf` stdin |
 | [sprites_simple](sprites_simple) | `Graphics/Sprites/simple`   | OAM sprites on both engines, VRAM banks, palettes |
+| [simple_tri](simple_tri)         | `Graphics/3D/Simple_Tri`    | 3D engine, GL pipeline, fixed-point + float GL calls |
+| [simple_quad](simple_quad)       | `Graphics/3D/Simple_Quad`   | 3D `GL_QUAD`, D-pad rotation |
 | [exception_test](exception_test) | `debugging/exceptionTest`   | Default exception handler, raw memory access |
 
 ## Building
@@ -86,6 +88,13 @@ Bridges the gaps between Embedded Swift and libnds:
   match Swift's stricter typing rather than the C "everything is an int" style.
 - A few constants use the function-like `BIT(n)` macro (e.g. `KEY_TOUCH`),
   which the importer drops — spell the bit out in Swift (`1 << 14`).
+- **3D / GL:** the float GL entry points (`glRotateX`, `gluPerspective`,
+  `gluLookAt`, …) are real inline functions and import fine — Embedded Swift's
+  soft-float calls them directly. `POLY_ALPHA(n)` is also an inline function, but
+  `inttov16` / `floattof32` are function-like macros, so they're reimplemented as
+  tiny Swift helpers. Functions typed to take a GL enum (`glMatrixMode`,
+  `glBegin`) accept the enum value directly; where one wants a raw `int`/`u32`
+  (`glEnable`, an OR with `POLY_CULL_NONE`), pass `.rawValue`.
 - In a file named `main.swift`, top-level code **is** the entry point — no
   `@main`.
 - `swiWaitForVBlank` is a macro alias; call the underlying `threadWaitForVBlank()`.
