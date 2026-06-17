@@ -32,6 +32,18 @@ unsigned nds_bus_clock(void) {
 	return BUS_CLOCK;
 }
 
+void nds_scanf_str(char *buf) {
+	iscanf("%s", buf);
+}
+
+unsigned short *nds_sprite_palette(void) {
+	return SPRITE_PALETTE;
+}
+
+unsigned short *nds_sprite_palette_sub(void) {
+	return SPRITE_PALETTE_SUB;
+}
+
 //---------------------------------------------------------------------------------
 // Runtime support the Embedded Swift object needs but devkitARM's libc/libgcc
 // do not provide for this target.

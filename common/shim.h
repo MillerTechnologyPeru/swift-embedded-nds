@@ -28,4 +28,11 @@ unsigned short nds_timer_freq_1024(int hz);
 // BUS_CLOCK macro: the timer base frequency in Hz.
 unsigned nds_bus_clock(void);
 
+// iscanf(fmt, buf): read a whitespace-delimited string from stdin.
+void nds_scanf_str(char *buf);
+
+// SPRITE_PALETTE / SPRITE_PALETTE_SUB pointer macros.
+unsigned short *nds_sprite_palette(void);
+unsigned short *nds_sprite_palette_sub(void);
+
 #endif // SWIFT_NDS_SHIM_H

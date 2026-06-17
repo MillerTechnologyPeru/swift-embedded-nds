@@ -11,8 +11,12 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 |-----------|-------------|--------------|
 | [hello_world](hello_world)       | `hello_world`               | Console output, VBlank IRQ handler, touch read |
 | [ansi_console](ansi_console)     | `Graphics/Printing/ansi_console` | ANSI cursor escape sequences |
+| [print_both_screens](print_both_screens) | `Graphics/Printing/print_both_screens` | A text console on each screen (main + sub) |
+| [console_windows](console_windows) | `Graphics/Printing/console_windows` | Multiple windowed consoles over one map |
 | [stopwatch](stopwatch)           | `time/stopwatch`            | Hardware timer elapsed/pause, formatted output |
 | [timercallback](timercallback)   | `time/timercallback`        | Timer IRQ callback (C function pointer), PSG sound |
+| [keyboard_stdin](keyboard_stdin) | `input/keyboard/keyboard_stdin` | On-screen keyboard, callback field, `iscanf` stdin |
+| [sprites_simple](sprites_simple) | `Graphics/Sprites/simple`   | OAM sprites on both engines, VRAM banks, palettes |
 | [exception_test](exception_test) | `debugging/exceptionTest`   | Default exception handler, raw memory access |
 
 ## Building
@@ -54,12 +58,13 @@ Everything shared lives in [common/](common); each example is just a
 
 Bridges the gaps between Embedded Swift and libnds:
 
-- **Variadic `iprintf`.** Swift imports C variadic functions but cannot call
-  them, so `nds_puts` / `nds_printf_1i` / `nds_printf_2i` forward into `iprintf`
-  with fixed arity — all formatting still happens inside libnds.
-- **Macro-only APIs.** `TIMER_FREQ_1024(n)` and `BUS_CLOCK` are preprocessor
-  macros the Swift importer can't surface, so `nds_timer_freq_1024` /
-  `nds_bus_clock` expose them as real functions.
+- **Variadic stdio.** Swift imports C variadic functions but cannot call them,
+  so `nds_puts` / `nds_printf_1i` / `nds_printf_2i` forward into `iprintf`, and
+  `nds_scanf_str` forwards into `iscanf` — all formatting stays inside libnds.
+- **Macro-only APIs.** Preprocessor macros the Swift importer can't surface are
+  re-exported as real functions: `nds_timer_freq_1024` (`TIMER_FREQ_1024`),
+  `nds_bus_clock` (`BUS_CLOCK`), and `nds_sprite_palette` /
+  `nds_sprite_palette_sub` (the `SPRITE_PALETTE*` pointer macros).
 - **Runtime support devkitARM doesn't provide for this target:**
   - `posix_memalign` (Swift's allocator wants it; newlib only has `memalign`).
   - `__atomic_*` outline helpers — armv4t has no atomic instructions, so LLVM
@@ -72,8 +77,15 @@ Bridges the gaps between Embedded Swift and libnds:
 
 - `import CNDS` ([common/module.modulemap](common/module.modulemap)) exposes
   `<nds.h>` + the shim.
-- A non-capturing top-level Swift function bridges automatically to the
-  `void (*)(void)` callback pointers used by `irqSet` / `timerStart`.
+- A non-capturing top-level Swift function bridges automatically to the C
+  function-pointer types used by `irqSet` / `timerStart`, and can be assigned
+  to a callback *field* on a struct too (e.g. `kbd.pointee.OnKeyPressed = …`).
+- libnds C enums (`VideoMode`, …) import as Swift types — pass `.rawValue`
+  where a function wants the underlying `u32` (e.g. `videoSetMode(MODE_0_2D.rawValue)`).
+- `touchRead` returns `Bool`; some libnds calls return distinct enum types, so
+  match Swift's stricter typing rather than the C "everything is an int" style.
+- A few constants use the function-like `BIT(n)` macro (e.g. `KEY_TOUCH`),
+  which the importer drops — spell the bit out in Swift (`1 << 14`).
 - In a file named `main.swift`, top-level code **is** the entry point — no
   `@main`.
 - `swiWaitForVBlank` is a macro alias; call the underlying `threadWaitForVBlank()`.
