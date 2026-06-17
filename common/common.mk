@@ -107,9 +107,11 @@ endif
 
 ifneq ($(strip $(DATA)),)
 vpath %.bin  $(DATA)
+vpath %.pcx  $(DATA)
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.bin)))
-ASSET_H		+=	$(addprefix $(BUILD)/,$(BINFILES:.bin=_bin.h))
-ASSET_O		+=	$(addprefix $(BUILD)/,$(BINFILES:.bin=_bin.o))
+PCXFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.pcx)))
+ASSET_H		+=	$(addprefix $(BUILD)/,$(BINFILES:.bin=_bin.h)) $(addprefix $(BUILD)/,$(PCXFILES:.pcx=_pcx.h))
+ASSET_O		+=	$(addprefix $(BUILD)/,$(BINFILES:.bin=_bin.o)) $(addprefix $(BUILD)/,$(PCXFILES:.pcx=_pcx.o))
 endif
 
 # Hand-written headers (e.g. texture-packer uvcoord tables) to expose to Swift.
@@ -143,10 +145,14 @@ $(BUILD)/%.s $(BUILD)/%.h: %.tga %.grit | $(BUILD)
 	@echo grit $(notdir $<)
 	grit $< -fts -o$(BUILD)/$*
 
-# bin2s: raw blob -> assembly data + extern header (<name>_bin / <name>_bin.h)
+# bin2s: raw blob -> assembly data + extern header (<name>_<ext> / <name>_<ext>.h)
 $(BUILD)/%_bin.s $(BUILD)/%_bin.h: %.bin | $(BUILD)
 	@echo bin2s $(notdir $<)
 	bin2s -a 4 -H $(BUILD)/$*_bin.h $< > $(BUILD)/$*_bin.s
+
+$(BUILD)/%_pcx.s $(BUILD)/%_pcx.h: %.pcx | $(BUILD)
+	@echo bin2s $(notdir $<)
+	bin2s -a 4 -H $(BUILD)/$*_pcx.h $< > $(BUILD)/$*_pcx.s
 
 # generated data -> object (devkitARM)
 $(BUILD)/%.o: $(BUILD)/%.s
