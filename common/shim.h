@@ -39,4 +39,20 @@ unsigned short *nds_sprite_palette_sub(void);
 unsigned short *nds_sprite_gfx(void);
 unsigned short *nds_sprite_gfx_sub(void);
 
+// BG_PALETTE pointer macro.
+unsigned short *nds_bg_palette(void);
+
+// GFX_TEX_COORD register: submit a pre-packed (TEXTURE_PACK) texcoord.
+void nds_set_tex_coord(unsigned packed);
+
+// 3D geometry-engine status registers (used by the picking example).
+int nds_gfx_busy(void);               // GFX_BUSY: nonzero while the GE is busy
+unsigned nds_gfx_polygon_ram_usage(void); // GFX_POLYGON_RAM_USAGE
+
+// Motion-blur via the display-capture unit (REG_DISPCAPCNT + DCAP_* macros).
+void nds_motion_blur_setup(void);    // configure the capture blend (once)
+void nds_motion_blur_enable(void);   // display composited-from-VRAM (blurred)
+void nds_motion_blur_disable(void);  // display the normal layer composition
+void nds_motion_blur_continue(void); // re-arm capture (call each frame)
+
 #endif // SWIFT_NDS_SHIM_H

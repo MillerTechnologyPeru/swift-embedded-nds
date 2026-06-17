@@ -52,6 +52,53 @@ unsigned short *nds_sprite_gfx_sub(void) {
 	return SPRITE_GFX_SUB;
 }
 
+unsigned short *nds_bg_palette(void) {
+	return BG_PALETTE;
+}
+
+void nds_set_tex_coord(unsigned packed) {
+	GFX_TEX_COORD = packed;
+}
+
+int nds_gfx_busy(void) {
+	return GFX_BUSY ? 1 : 0;
+}
+
+unsigned nds_gfx_polygon_ram_usage(void) {
+	return GFX_POLYGON_RAM_USAGE;
+}
+
+// --- Motion blur via display capture (Textured_Cube) -----------------------------
+void nds_motion_blur_setup(void) {
+	vramSetBankB(VRAM_B_LCD);
+	REG_DISPCAPCNT =
+		  DCAP_MODE(DCAP_MODE_BLEND)
+		| DCAP_SRC_B(DCAP_SRC_B_VRAM)
+		| DCAP_SRC_A(DCAP_SRC_A_3DONLY)
+		| DCAP_SIZE(DCAP_SIZE_256x192)
+		| DCAP_OFFSET(0)
+		| DCAP_BANK(DCAP_BANK_VRAM_B)
+		| DCAP_B(12)   // blend mostly from B for a dramatic trail
+		| DCAP_A(4);   // and only a little from the new scene
+}
+
+void nds_motion_blur_enable(void) {
+	u32 dispcnt = REG_DISPCNT;
+	dispcnt &= ~(0x00030000u); dispcnt |= 2u << 16; // display from VRAM
+	dispcnt &= ~(0x000C0000u); dispcnt |= 1u << 18; // ... from VRAM_B
+	REG_DISPCNT = dispcnt;
+}
+
+void nds_motion_blur_disable(void) {
+	u32 dispcnt = REG_DISPCNT;
+	dispcnt &= ~(0x00030000u); dispcnt |= 1u << 16; // normal layer composition
+	REG_DISPCNT = dispcnt;
+}
+
+void nds_motion_blur_continue(void) {
+	REG_DISPCAPCNT |= DCAP_ENABLE;
+}
+
 //---------------------------------------------------------------------------------
 // Runtime support the Embedded Swift object needs but devkitARM's libc/libgcc
 // do not provide for this target.

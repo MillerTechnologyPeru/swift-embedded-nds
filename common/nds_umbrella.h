@@ -5,6 +5,7 @@
 #define SWIFT_NDS_UMBRELLA_H
 
 #include <nds.h>
+#include <nds/arm9/postest.h>   // 3D position test (picking) -- not pulled in by nds.h
 #include "shim.h"
 
 #endif // SWIFT_NDS_UMBRELLA_H

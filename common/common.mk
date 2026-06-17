@@ -72,31 +72,49 @@ SWIFTFLAGS	:=	-target armv4t-none-none-eabi \
 OFILES		:=	$(BUILD)/main.swift.o $(BUILD)/shim.o
 
 #---------------------------------------------------------------------------------
-# Optional grit graphics pipeline.
+# Optional asset pipelines.
 #
-# An example sets GRAPHICS to a directory of <name>.png + <name>.grit pairs.
-# grit converts each into $(BUILD)/<name>.s (data) and $(BUILD)/<name>.h (extern
-# declarations). The .s is compiled and linked in; the headers are gathered into
-# $(BUILD)/assets.h, which is handed to Swift as a bridging header so the
-# generated symbols (e.g. ballTiles, ballPal) are visible alongside `import CNDS`.
+#   GRAPHICS -- directory of <name>.png/.bmp + <name>.grit pairs, converted with
+#               grit into tile/palette data.
+#   DATA     -- directory of <name>.bin blobs, embedded with bin2s (display
+#               lists, textures, raw bitmaps, ...).
+#
+# Each tool emits an assembly data file (compiled and linked in) plus a header
+# of extern declarations. All generated headers are gathered into
+# $(BUILD)/assets.h, handed to Swift as a bridging header so the symbols are
+# visible alongside `import CNDS`. Because a C global array imports into Swift as
+# a tuple (a *copy*), assets.h also emits an nds_asset_<symbol>() accessor that
+# returns the address of the real linked symbol -- use that whenever a pointer is
+# handed back to libnds (consoleSetFont, glCallList, glTexImage2D, ...).
 #---------------------------------------------------------------------------------
 GRAPHICS	?=
+DATA		?=
+ASSET_H		:=
+ASSET_O		:=
 
 ifneq ($(strip $(GRAPHICS)),)
 vpath %.png  $(GRAPHICS)
 vpath %.bmp  $(GRAPHICS)
 vpath %.grit $(GRAPHICS)
-
 PNGFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.png)))
 BMPFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.bmp)))
 GFXBASES	:=	$(PNGFILES:.png=) $(BMPFILES:.bmp=)
-GFX_H		:=	$(addprefix $(BUILD)/,$(addsuffix .h,$(GFXBASES)))
-GFX_O		:=	$(addprefix $(BUILD)/,$(addsuffix .o,$(GFXBASES)))
-ASSETS_H	:=	$(BUILD)/assets.h
+ASSET_H		+=	$(addprefix $(BUILD)/,$(addsuffix .h,$(GFXBASES)))
+ASSET_O		+=	$(addprefix $(BUILD)/,$(addsuffix .o,$(GFXBASES)))
+endif
 
-OFILES		+=	$(GFX_O)
+ifneq ($(strip $(DATA)),)
+vpath %.bin  $(DATA)
+BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.bin)))
+ASSET_H		+=	$(addprefix $(BUILD)/,$(BINFILES:.bin=_bin.h))
+ASSET_O		+=	$(addprefix $(BUILD)/,$(BINFILES:.bin=_bin.o))
+endif
+
+ifneq ($(strip $(ASSET_H)),)
+ASSETS_H	:=	$(BUILD)/assets.h
+OFILES		+=	$(ASSET_O)
 SWIFTFLAGS	+=	-Xcc -I$(BUILD) -import-objc-header $(ASSETS_H)
-SWIFTDEPS	:=	$(ASSETS_H) $(GFX_H)
+SWIFTDEPS	:=	$(ASSETS_H) $(ASSET_H)
 endif
 
 #---------------------------------------------------------------------------------
@@ -116,6 +134,11 @@ $(BUILD)/%.s $(BUILD)/%.h: %.bmp %.grit | $(BUILD)
 	@echo grit $(notdir $<)
 	grit $< -fts -o$(BUILD)/$*
 
+# bin2s: raw blob -> assembly data + extern header (<name>_bin / <name>_bin.h)
+$(BUILD)/%_bin.s $(BUILD)/%_bin.h: %.bin | $(BUILD)
+	@echo bin2s $(notdir $<)
+	bin2s -a 4 -H $(BUILD)/$*_bin.h $< > $(BUILD)/$*_bin.s
+
 # generated data -> object (devkitARM)
 $(BUILD)/%.o: $(BUILD)/%.s
 	@echo $(notdir $<)
@@ -127,12 +150,12 @@ $(BUILD)/%.o: $(BUILD)/%.s
 # `nds_asset_<name>()` returns the address of the real linked symbol, which is
 # valid for the lifetime of the program (needed when a pointer is handed to
 # libnds, e.g. consoleSetFont).
-$(ASSETS_H): $(GFX_H) | $(BUILD)
+$(ASSETS_H): $(ASSET_H) | $(BUILD)
 	@printf '#ifndef SWIFT_NDS_ASSETS_H\n#define SWIFT_NDS_ASSETS_H\n' > $@
-	@for h in $(notdir $(GFX_H)); do printf '#include "%s"\n' "$$h" >> $@; done
-	@for h in $(GFX_H); do \
-	  grep -oE 'extern const [a-z ]+[A-Za-z_][A-Za-z0-9_]*\[[0-9]*\]' $$h | \
-	  sed -E 's/.*[^A-Za-z0-9_]([A-Za-z_][A-Za-z0-9_]*)\[[0-9]*\]/static inline const void *nds_asset_\1(void) { return \1; }/' >> $@; \
+	@for h in $(notdir $(ASSET_H)); do printf '#include "%s"\n' "$$h" >> $@; done
+	@for h in $(ASSET_H); do \
+	  grep -E 'extern const .*\[[0-9]*\];' $$h | \
+	  sed -E 's/^.*[^A-Za-z0-9_]([A-Za-z_][A-Za-z0-9_]*)\[[0-9]*\];.*$$/static inline const void *nds_asset_\1(void) { return \1; }/' >> $@; \
 	done
 	@printf '#endif\n' >> $@
 
