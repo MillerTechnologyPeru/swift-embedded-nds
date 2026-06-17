@@ -31,6 +31,12 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [nehe2](nehe2)                   | `Graphics/3D/nehe/lesson02` | First polygons (triangle + quad) |
 | [nehe3](nehe3)                   | `Graphics/3D/nehe/lesson03` | Per-vertex colour |
 | [nehe4](nehe4)                   | `Graphics/3D/nehe/lesson04` | Rotation (`glRotatef`) |
+| [nehe5](nehe5)                   | `Graphics/3D/nehe/lesson05` | Solid 3D pyramid + colour cube |
+| [nehe6](nehe6)                   | `Graphics/3D/nehe/lesson06` | **PCX texture** (bin2s blob + runtime `loadPCX`) on a cube |
+| [nehe7](nehe7)                   | `Graphics/3D/nehe/lesson07` | Lit textured cube, normals, toggleable lighting |
+| [nehe8](nehe8)                   | `Graphics/3D/nehe/lesson08` | Alpha-blended translucent cube |
+| [nehe9](nehe9)                   | `Graphics/3D/nehe/lesson09` | Blended colour-cycling star field |
+| [nehe11](nehe11)                 | `Graphics/3D/nehe/lesson11` | Waving-flag texture grid mesh |
 | [mixed_text_3d](mixed_text_3d)   | `Graphics/3D/Mixed_Text_3D` | 3D + text console sharing one screen, `%f` printf |
 | [display_list](display_list)     | `Graphics/3D/Display_List`  | Hand-built display list (packed FIFO commands) |
 | [simple_tri](simple_tri)         | `Graphics/3D/Simple_Tri`    | 3D engine, GL pipeline, fixed-point + float GL calls |
