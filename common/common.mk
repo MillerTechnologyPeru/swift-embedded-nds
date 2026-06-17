@@ -121,10 +121,19 @@ $(BUILD)/%.o: $(BUILD)/%.s
 	@echo $(notdir $<)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# gather generated headers into one bridging header for Swift
+# Gather generated headers into one bridging header for Swift, and emit a
+# stable-pointer accessor for each grit symbol. A C global array imports into
+# Swift as a tuple (a *copy*), so `withUnsafeBytes(of:)` only yields a temporary;
+# `nds_asset_<name>()` returns the address of the real linked symbol, which is
+# valid for the lifetime of the program (needed when a pointer is handed to
+# libnds, e.g. consoleSetFont).
 $(ASSETS_H): $(GFX_H) | $(BUILD)
 	@printf '#ifndef SWIFT_NDS_ASSETS_H\n#define SWIFT_NDS_ASSETS_H\n' > $@
 	@for h in $(notdir $(GFX_H)); do printf '#include "%s"\n' "$$h" >> $@; done
+	@for h in $(GFX_H); do \
+	  grep -oE 'extern const [a-z ]+[A-Za-z_][A-Za-z0-9_]*\[[0-9]*\]' $$h | \
+	  sed -E 's/.*[^A-Za-z0-9_]([A-Za-z_][A-Za-z0-9_]*)\[[0-9]*\]/static inline const void *nds_asset_\1(void) { return \1; }/' >> $@; \
+	done
 	@printf '#endif\n' >> $@
 
 # Swift -> object

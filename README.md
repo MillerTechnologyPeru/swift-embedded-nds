@@ -56,11 +56,17 @@ each image, compiles the generated data, and gathers the generated headers into
 a single bridging header handed to Swift — so the grit symbols (`ballTiles`,
 `fontPal`, …) are visible alongside `import CNDS`.
 
-A C global array imports into Swift as a **tuple**, not a pointer, so asset data
-is reached with `withUnsafeBytes(of: ballTiles) { … }`. That's fine for copying
-into VRAM, and also for APIs like `consoleSetFont` that copy during the call
-(do the call inside the closure). An asset pointer that must outlive the call
-would need a small per-asset C accessor instead.
+A C global array imports into Swift as a **tuple** (a *copy*), not a pointer.
+Two ways to use the data:
+
+- **Copying it yourself** (e.g. into sprite VRAM): `withUnsafeBytes(of: ballTiles) { … }`
+  and loop — the temporary is valid for the closure body, which is all a
+  synchronous copy needs.
+- **Handing a pointer to libnds** (e.g. `ConsoleFont.gfx` for `consoleSetFont`):
+  use the generated `nds_asset_<symbol>()` accessor, which returns the address
+  of the *real linked symbol*. Passing a `withUnsafeBytes` temporary here is a
+  bug — the pointer dangles once the closure returns and libnds renders garbage
+  (a black screen, in the custom_font case).
 
 ### The build pipeline ([common.mk](common/common.mk))
 

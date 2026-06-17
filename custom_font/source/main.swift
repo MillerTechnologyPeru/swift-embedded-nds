@@ -16,22 +16,19 @@ vramSetBankC(VRAM_C_SUB_BG)
 
 let console = consoleInit(nil, 0, BgType_Text4bpp, BgSize_T_256x256, mapBase, tileBase, false, false)
 
-// consoleSetFont copies the font into VRAM, so the asset pointers only need to
-// be valid for the duration of that call -- which is exactly the closure scope.
+// Point the font at the real linked grit symbols via the generated stable-
+// pointer accessors (a plain `fontTiles` reference would import as a tuple copy,
+// leaving consoleSetFont with a dangling pointer to a stack temporary).
 var font = ConsoleFont()
-withUnsafeBytes(of: fontTiles) { gfxRaw in
-	withUnsafeBytes(of: fontPal) { palRaw in
-		font.gfx = UnsafeMutablePointer(mutating: gfxRaw.bindMemory(to: UInt16.self).baseAddress)
-		font.pal = UnsafeMutablePointer(mutating: palRaw.bindMemory(to: UInt16.self).baseAddress)
-		font.numChars = 95
-		font.numColors = UInt16(fontPalLen / 2)
-		font.bpp = 4
-		font.asciiOffset = 32
-		font.convertSingleColor = false
+font.gfx = UnsafeMutablePointer(mutating: nds_asset_fontTiles()!.assumingMemoryBound(to: UInt16.self))
+font.pal = UnsafeMutablePointer(mutating: nds_asset_fontPal()!.assumingMemoryBound(to: UInt16.self))
+font.numChars = 95
+font.numColors = UInt16(fontPalLen / 2)
+font.bpp = 4
+font.asciiOffset = 32
+font.convertSingleColor = false
 
-		consoleSetFont(console, &font)
-	}
-}
+consoleSetFont(console, &font)
 
 nds_puts("Custom Font Demo\n")
 nds_puts("   by Poffy\n")
