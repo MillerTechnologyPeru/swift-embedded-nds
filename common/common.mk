@@ -95,10 +95,12 @@ ASSET_O		:=
 ifneq ($(strip $(GRAPHICS)),)
 vpath %.png  $(GRAPHICS)
 vpath %.bmp  $(GRAPHICS)
+vpath %.tga  $(GRAPHICS)
 vpath %.grit $(GRAPHICS)
 PNGFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.png)))
 BMPFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.bmp)))
-GFXBASES	:=	$(PNGFILES:.png=) $(BMPFILES:.bmp=)
+TGAFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.tga)))
+GFXBASES	:=	$(PNGFILES:.png=) $(BMPFILES:.bmp=) $(TGAFILES:.tga=)
 ASSET_H		+=	$(addprefix $(BUILD)/,$(addsuffix .h,$(GFXBASES)))
 ASSET_O		+=	$(addprefix $(BUILD)/,$(addsuffix .o,$(GFXBASES)))
 endif
@@ -131,6 +133,10 @@ $(BUILD)/%.s $(BUILD)/%.h: %.png %.grit | $(BUILD)
 	grit $< -fts -o$(BUILD)/$*
 
 $(BUILD)/%.s $(BUILD)/%.h: %.bmp %.grit | $(BUILD)
+	@echo grit $(notdir $<)
+	grit $< -fts -o$(BUILD)/$*
+
+$(BUILD)/%.s $(BUILD)/%.h: %.tga %.grit | $(BUILD)
 	@echo grit $(notdir $<)
 	grit $< -fts -o$(BUILD)/$*
 

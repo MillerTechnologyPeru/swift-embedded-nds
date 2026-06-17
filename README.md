@@ -22,6 +22,14 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [custom_font](custom_font)       | `Graphics/Printing/custom_font` | **grit bitmap font** loaded into a console |
 | [simple_tri](simple_tri)         | `Graphics/3D/Simple_Tri`    | 3D engine, GL pipeline, fixed-point + float GL calls |
 | [simple_quad](simple_quad)       | `Graphics/3D/Simple_Quad`   | 3D `GL_QUAD`, D-pad rotation |
+| [display_list_2](display_list_2) | `Graphics/3D/Display_List_2` | **bin2o** display list (teapot), hardware lighting |
+| [toon_shading](toon_shading)     | `Graphics/3D/Toon_Shading`  | Display-list blob, toon table, stylus rotate |
+| [textured_quad](textured_quad)   | `Graphics/3D/Textured_Quad` | **Texture blob**, `glTexImage2D`, texcoords/normals |
+| [textured_cube](textured_cube)   | `Graphics/3D/Textured_Cube` | Texture blob, vertex/uv tables, display-capture motion blur |
+| [env_mapping](env_mapping)       | `Graphics/3D/Env_Mapping`   | `TEXGEN_NORMAL` reflection mapping, texture matrix |
+| [picking](picking)               | `Graphics/3D/Picking`       | 3D picking via `gluPickMatrix` + position test |
+| [rotation](rotation)             | `Graphics/Backgrounds/rotation` | Raw bitmap+palette blobs, rotation/scale background |
+| [paletted_cube](paletted_cube)   | `Graphics/3D/Paletted_Cube` | **All DS texture formats** (grit `.tga` + compressed blobs), palette swap |
 | [exception_test](exception_test) | `debugging/exceptionTest`   | Default exception handler, raw memory access |
 
 ## Building
@@ -46,15 +54,18 @@ make SWIFTC=/path/to/swiftc      # if swiftc isn't the Embedded toolchain on PAT
 
 Everything shared lives in [common/](common); each example is just a
 `source/main.swift` plus a three-line Makefile that sets `TARGET` and
-`include`s [common/common.mk](common/common.mk). Examples with graphics set
-`GRAPHICS := gfx` to point at a directory of `.png`/`.bmp` + `.grit` pairs.
+`include`s [common/common.mk](common/common.mk). Examples with assets set
+`GRAPHICS := gfx` (a directory of `.png`/`.bmp`/`.tga` + `.grit` pairs) and/or
+`DATA := data` (a directory of `.bin` blobs); both can be set at once.
 
-### Graphics assets (grit)
+### Assets (grit + bin2o)
 
-For examples that set `GRAPHICS`, [common.mk](common/common.mk) runs **grit** on
-each image, compiles the generated data, and gathers the generated headers into
-a single bridging header handed to Swift — so the grit symbols (`ballTiles`,
-`fontPal`, …) are visible alongside `import CNDS`.
+For examples that set `GRAPHICS` or `DATA`, [common.mk](common/common.mk) runs
+**grit** on each image and **bin2s** on each `.bin` blob, compiles the generated
+data, and gathers the generated headers into a single bridging header handed to
+Swift — so the symbols (`ballTiles`, `fontPal`, `teapot_bin`, …) are visible
+alongside `import CNDS`. grit images become tile/palette tables; blobs become
+raw byte arrays for display lists, textures, bitmaps, etc.
 
 A C global array imports into Swift as a **tuple** (a *copy*), not a pointer.
 Two ways to use the data:
@@ -84,12 +95,15 @@ Two ways to use the data:
 Bridges the gaps between Embedded Swift and libnds:
 
 - **Variadic stdio.** Swift imports C variadic functions but cannot call them,
-  so `nds_puts` / `nds_printf_1i` / `nds_printf_2i` forward into `iprintf`, and
-  `nds_scanf_str` forwards into `iscanf` — all formatting stays inside libnds.
+  so `nds_puts` / `nds_printf_1i` / `nds_printf_2i` forward into `iprintf`,
+  `nds_printf_1f` / `nds_printf_2f` into `printf` (for `%f`), and `nds_scanf_str`
+  into `iscanf` — all formatting stays inside libnds.
 - **Macro-only APIs.** Preprocessor macros the Swift importer can't surface are
   re-exported as real functions: `nds_timer_freq_1024` (`TIMER_FREQ_1024`),
-  `nds_bus_clock` (`BUS_CLOCK`), and `nds_sprite_palette` /
-  `nds_sprite_palette_sub` (the `SPRITE_PALETTE*` pointer macros).
+  `nds_bus_clock` (`BUS_CLOCK`), the `SPRITE_PALETTE*` / `SPRITE_GFX*` /
+  `BG_PALETTE` pointer macros, the `GFX_TEX_COORD` / `GFX_BUSY` /
+  `GFX_POLYGON_RAM_USAGE` 3D registers, and the display-capture motion-blur
+  registers (`nds_motion_blur_*`).
 - **Runtime support devkitARM doesn't provide for this target:**
   - `posix_memalign` (Swift's allocator wants it; newlib only has `memalign`).
   - `__atomic_*` outline helpers — armv4t has no atomic instructions, so LLVM
@@ -128,16 +142,17 @@ Bridges the gaps between Embedded Swift and libnds:
 ## Remaining
 
 The ported set above covers every major interop pattern: console, timers, IRQ
-callbacks, PSG sound, input/keyboard, sprites/OAM, 3D/GL, and grit graphics.
+callbacks, PSG sound, input/keyboard, sprites/OAM, 3D/GL, grit graphics, and
+**bin2o binary blobs** (display lists, textures, all DS texture formats).
 What's left in the upstream example tree still needs its *own* toolchain or
 runtime work, not just more of the same translation:
 
 - **Audio** (`audio/maxmod/*`) — needs the `mmutil` soundbank pipeline.
-- **Binary blobs** (`bin2o`) — 3D display lists, some backgrounds.
 - **Filesystem** (`filesystem/*`) — libfat + DLDI / NitroFS.
 - **Wi-Fi** (`dswifi/*`) — the dswifi stack.
 - **Dual-CPU** (`pxi/*`, combined templates) — a separate ARM7 binary.
-- **Large GL2D demos** (`Graphics/gl2d/*`) — big, asset-heavy.
+- **Large GL2D demos** (`Graphics/gl2d/*`) — big, asset-heavy (but buildable on
+  the existing grit + bin2o + GL foundations).
 
-The `common/` scaffolding (and the grit pipeline) applies to the asset-heavy
+The `common/` scaffolding (grit + bin2o pipelines) applies to the asset-heavy
 graphics ones unchanged; the others are each a distinct piece of plumbing.

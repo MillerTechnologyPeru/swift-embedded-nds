@@ -28,6 +28,10 @@ unsigned short nds_timer_freq_1024(int hz);
 // BUS_CLOCK macro: the timer base frequency in Hz.
 unsigned nds_bus_clock(void);
 
+// iprintf(fmt, a) / iprintf(fmt, a, b) with floating-point arguments.
+void nds_printf_1f(const char *fmt, double a);
+void nds_printf_2f(const char *fmt, double a, double b);
+
 // iscanf(fmt, buf): read a whitespace-delimited string from stdin.
 void nds_scanf_str(char *buf);
 

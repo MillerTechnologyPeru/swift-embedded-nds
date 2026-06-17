@@ -32,6 +32,15 @@ unsigned nds_bus_clock(void) {
 	return BUS_CLOCK;
 }
 
+// iprintf is integer-only; use full printf for floating-point conversions.
+void nds_printf_1f(const char *fmt, double a) {
+	printf(fmt, a);
+}
+
+void nds_printf_2f(const char *fmt, double a, double b) {
+	printf(fmt, a, b);
+}
+
 void nds_scanf_str(char *buf) {
 	iscanf("%s", buf);
 }
