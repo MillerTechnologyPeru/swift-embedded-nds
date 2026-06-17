@@ -28,6 +28,10 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [sprite_rotate](sprite_rotate)   | `Graphics/Sprites/sprite_rotate` | `oamRotateScale`, size-doubling |
 | [bitmap_sprites](bitmap_sprites) | `Graphics/Sprites/bitmap_sprites` | Sprites in bitmap/256/16-colour formats |
 | [nehe1](nehe1)                   | `Graphics/3D/nehe/lesson01` | Minimal NeHe 3D setup |
+| [nehe2](nehe2)                   | `Graphics/3D/nehe/lesson02` | First polygons (triangle + quad) |
+| [nehe3](nehe3)                   | `Graphics/3D/nehe/lesson03` | Per-vertex colour |
+| [nehe4](nehe4)                   | `Graphics/3D/nehe/lesson04` | Rotation (`glRotatef`) |
+| [mixed_text_3d](mixed_text_3d)   | `Graphics/3D/Mixed_Text_3D` | 3D + text console sharing one screen, `%f` printf |
 | [display_list](display_list)     | `Graphics/3D/Display_List`  | Hand-built display list (packed FIFO commands) |
 | [simple_tri](simple_tri)         | `Graphics/3D/Simple_Tri`    | 3D engine, GL pipeline, fixed-point + float GL calls |
 | [simple_quad](simple_quad)       | `Graphics/3D/Simple_Quad`   | 3D `GL_QUAD`, D-pad rotation |
