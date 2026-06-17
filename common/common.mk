@@ -164,7 +164,7 @@ $(ASSETS_H): $(ASSET_H) $(EXTRA_HEADERS) | $(BUILD)
 	@for h in $(notdir $(ASSET_H)); do printf '#include "%s"\n' "$$h" >> $@; done
 	@for h in $(EXTRA_HEADERS); do printf '#include "%s"\n' "$(CURDIR)/$$h" >> $@; done
 	@for h in $(ASSET_H) $(EXTRA_HEADERS); do \
-	  grep -E 'extern const .*\[[0-9]*\]' $$h | \
+	  grep -E '^(extern )?const .*\[[0-9]*\]' $$h | \
 	  sed -E 's/^.*[^A-Za-z0-9_]([A-Za-z_][A-Za-z0-9_]*)\[[0-9]*\].*$$/static inline const void *nds_asset_\1(void) { return \1; }/' >> $@; \
 	done
 	@printf '#endif\n' >> $@

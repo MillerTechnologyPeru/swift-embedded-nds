@@ -43,6 +43,10 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [picking](picking)               | `Graphics/3D/Picking`       | 3D picking via `gluPickMatrix` + position test |
 | [rotation](rotation)             | `Graphics/Backgrounds/rotation` | Raw bitmap+palette blobs, rotation/scale background |
 | [paletted_cube](paletted_cube)   | `Graphics/3D/Paletted_Cube` | **All DS texture formats** (grit `.tga` + compressed blobs), palette swap |
+| [gl2d_primitives](gl2d_primitives) | `Graphics/gl2d/primitives` | **Easy GL2D**: boxes/triangles/lines/pixels, `sinLerp` |
+| [gl2d_dual_screen](gl2d_dual_screen) | `Graphics/gl2d/dual_screen` | GL2D mirrored to both screens via display capture |
+| [gl2d_fonts](gl2d_fonts)         | `Graphics/gl2d/fonts`       | GL2D sprite-set bitmap fonts (grit atlas + uvcoord tables) |
+| [gl2d_scrolling](gl2d_scrolling) | `Graphics/gl2d/scrolling`   | GL2D tile-set scrolling engine + animated sprite, camera |
 | [exception_test](exception_test) | `debugging/exceptionTest`   | Default exception handler, raw memory access |
 
 ## Building
@@ -70,6 +74,8 @@ Everything shared lives in [common/](common); each example is just a
 `include`s [common/common.mk](common/common.mk). Examples with assets set
 `GRAPHICS := gfx` (a directory of `.png`/`.bmp`/`.tga` + `.grit` pairs) and/or
 `DATA := data` (a directory of `.bin` blobs); both can be set at once.
+`EXTRA_HEADERS := …` lists hand-written headers (e.g. texture-packer uvcoord
+tables) to expose to Swift with the same `nds_asset_*()` accessor treatment.
 
 ### Assets (grit + bin2o)
 
