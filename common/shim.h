@@ -80,4 +80,7 @@ int  nds_dispcap_busy(void);          // nonzero while a capture is in progress
 void nds_dispcap_to_bank(int bank);   // capture this frame to VRAM bank (full screen)
 void nds_init_sub_sprites_grid(void); // 4x3 grid of 64x64 bitmap sprites on the sub OAM
 
+// Cearn's fixed-point atan2 (LUT + hardware divider). Returns [0,2pi), pi~0x4000.
+unsigned nds_atan2_lerp(int x, int y);
+
 #endif // SWIFT_NDS_SHIM_H

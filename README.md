@@ -47,6 +47,8 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [gl2d_dual_screen](gl2d_dual_screen) | `Graphics/gl2d/dual_screen` | GL2D mirrored to both screens via display capture |
 | [gl2d_fonts](gl2d_fonts)         | `Graphics/gl2d/fonts`       | GL2D sprite-set bitmap fonts (grit atlas + uvcoord tables) |
 | [gl2d_scrolling](gl2d_scrolling) | `Graphics/gl2d/scrolling`   | GL2D tile-set scrolling engine + animated sprite, camera |
+| [gl2d_sprites](gl2d_sprites)     | `Graphics/gl2d/sprites`     | GL2D sprite rotate/scale/stretch/flip, palette-swap tint |
+| [gl2d_2dplus3d](gl2d_2dplus3d)   | `Graphics/gl2d/2Dplus3D`    | 3D textured mesh (ported vertex buffer) + GL2D 2D sprites, fixed-point atan2 |
 | [exception_test](exception_test) | `debugging/exceptionTest`   | Default exception handler, raw memory access |
 
 ## Building
