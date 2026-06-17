@@ -112,11 +112,14 @@ ASSET_H		+=	$(addprefix $(BUILD)/,$(BINFILES:.bin=_bin.h))
 ASSET_O		+=	$(addprefix $(BUILD)/,$(BINFILES:.bin=_bin.o))
 endif
 
-ifneq ($(strip $(ASSET_H)),)
+# Hand-written headers (e.g. texture-packer uvcoord tables) to expose to Swift.
+EXTRA_HEADERS	?=
+
+ifneq ($(strip $(ASSET_H))$(strip $(EXTRA_HEADERS)),)
 ASSETS_H	:=	$(BUILD)/assets.h
 OFILES		+=	$(ASSET_O)
 SWIFTFLAGS	+=	-Xcc -I$(BUILD) -import-objc-header $(ASSETS_H)
-SWIFTDEPS	:=	$(ASSETS_H) $(ASSET_H)
+SWIFTDEPS	:=	$(ASSETS_H) $(ASSET_H) $(EXTRA_HEADERS)
 endif
 
 #---------------------------------------------------------------------------------
@@ -156,12 +159,13 @@ $(BUILD)/%.o: $(BUILD)/%.s
 # `nds_asset_<name>()` returns the address of the real linked symbol, which is
 # valid for the lifetime of the program (needed when a pointer is handed to
 # libnds, e.g. consoleSetFont).
-$(ASSETS_H): $(ASSET_H) | $(BUILD)
+$(ASSETS_H): $(ASSET_H) $(EXTRA_HEADERS) | $(BUILD)
 	@printf '#ifndef SWIFT_NDS_ASSETS_H\n#define SWIFT_NDS_ASSETS_H\n' > $@
 	@for h in $(notdir $(ASSET_H)); do printf '#include "%s"\n' "$$h" >> $@; done
-	@for h in $(ASSET_H); do \
-	  grep -E 'extern const .*\[[0-9]*\];' $$h | \
-	  sed -E 's/^.*[^A-Za-z0-9_]([A-Za-z_][A-Za-z0-9_]*)\[[0-9]*\];.*$$/static inline const void *nds_asset_\1(void) { return \1; }/' >> $@; \
+	@for h in $(EXTRA_HEADERS); do printf '#include "%s"\n' "$(CURDIR)/$$h" >> $@; done
+	@for h in $(ASSET_H) $(EXTRA_HEADERS); do \
+	  grep -E 'extern const .*\[[0-9]*\]' $$h | \
+	  sed -E 's/^.*[^A-Za-z0-9_]([A-Za-z_][A-Za-z0-9_]*)\[[0-9]*\].*$$/static inline const void *nds_asset_\1(void) { return \1; }/' >> $@; \
 	done
 	@printf '#endif\n' >> $@
 

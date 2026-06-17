@@ -133,6 +133,32 @@ void nds_motion_blur_continue(void) {
 	REG_DISPCAPCNT |= DCAP_ENABLE;
 }
 
+int nds_dispcap_busy(void) {
+	return (REG_DISPCAPCNT & DCAP_ENABLE) ? 1 : 0;
+}
+
+void nds_dispcap_to_bank(int bank) {
+	REG_DISPCAPCNT = DCAP_BANK(bank) | DCAP_ENABLE | DCAP_SIZE(3);
+}
+
+void nds_init_sub_sprites_grid(void) {
+	oamInit(&oamSub, SpriteMapping_Bmp_2D_256, false);
+
+	int id = 0;
+	// a 4x3 grid of 64x64 bitmap sprites that tiles the whole screen
+	for (int y = 0; y < 3; y++) {
+		for (int x = 0; x < 4; x++) {
+			oamSub.oamMemory[id].attribute[0] = ATTR0_BMP | ATTR0_SQUARE | (64 * y);
+			oamSub.oamMemory[id].attribute[1] = ATTR1_SIZE_64 | (64 * x);
+			oamSub.oamMemory[id].attribute[2] = ATTR2_ALPHA(1) | (8 * 32 * y) | (8 * x);
+			id++;
+		}
+	}
+
+	swiWaitForVBlank();
+	oamUpdate(&oamSub);
+}
+
 //---------------------------------------------------------------------------------
 // Runtime support the Embedded Swift object needs but devkitARM's libc/libgcc
 // do not provide for this target.

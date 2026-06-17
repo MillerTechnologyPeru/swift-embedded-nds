@@ -75,4 +75,9 @@ void nds_motion_blur_enable(void);   // display composited-from-VRAM (blurred)
 void nds_motion_blur_disable(void);  // display the normal layer composition
 void nds_motion_blur_continue(void); // re-arm capture (call each frame)
 
+// Display capture used to mirror the 3D scene to the other screen (dual_screen).
+int  nds_dispcap_busy(void);          // nonzero while a capture is in progress
+void nds_dispcap_to_bank(int bank);   // capture this frame to VRAM bank (full screen)
+void nds_init_sub_sprites_grid(void); // 4x3 grid of 64x64 bitmap sprites on the sub OAM
+
 #endif // SWIFT_NDS_SHIM_H
