@@ -20,6 +20,15 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [sprites_simple](sprites_simple) | `Graphics/Sprites/simple`   | OAM sprites on both engines, VRAM banks, palettes |
 | [touch_test](touch_test)         | `input/Touch_Pad/touch_test` | **grit-converted sprite**, OAM, touch min/max tracking |
 | [custom_font](custom_font)       | `Graphics/Printing/custom_font` | **grit bitmap font** loaded into a console |
+| [bg_256color](bg_256color)       | `Graphics/Backgrounds/256_color_bmp` | grit 8bpp bitmap background |
+| [bg_16bit](bg_16bit)             | `Graphics/Backgrounds/16bit_color_bmp` | grit 16bpp bitmap, LZ77 `decompress` into VRAM |
+| [double_buffer](double_buffer)   | `Graphics/Backgrounds/Double_Buffer` | Double-buffered bitmap BG via map-base flip |
+| [tilemap](tilemap)               | `Graphics/grit/256colorTilemap` | grit tiles+map+palette, `BGCTRL`/char-base |
+| [effects_windows](effects_windows) | `Graphics/Effects/windows` | Hardware display window over a BG |
+| [sprite_rotate](sprite_rotate)   | `Graphics/Sprites/sprite_rotate` | `oamRotateScale`, size-doubling |
+| [bitmap_sprites](bitmap_sprites) | `Graphics/Sprites/bitmap_sprites` | Sprites in bitmap/256/16-colour formats |
+| [nehe1](nehe1)                   | `Graphics/3D/nehe/lesson01` | Minimal NeHe 3D setup |
+| [display_list](display_list)     | `Graphics/3D/Display_List`  | Hand-built display list (packed FIFO commands) |
 | [simple_tri](simple_tri)         | `Graphics/3D/Simple_Tri`    | 3D engine, GL pipeline, fixed-point + float GL calls |
 | [simple_quad](simple_quad)       | `Graphics/3D/Simple_Quad`   | 3D `GL_QUAD`, D-pad rotation |
 | [display_list_2](display_list_2) | `Graphics/3D/Display_List_2` | **bin2o** display list (teapot), hardware lighting |

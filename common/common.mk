@@ -49,7 +49,7 @@ LDFLAGS		:=	-specs=$(CALICO)/share/ds9.specs -g $(ARCH) \
 			-Wl,-Map,$(TARGET).map -Wl,--gc-sections \
 			-L$(LIBNDS)/lib -L$(CALICO)/lib
 
-LIBS		?=	-lnds9 -lcalico_ds9
+LIBS		?=	-lnds9 -lcalico_ds9 -lm
 
 #---------------------------------------------------------------------------------
 # Embedded Swift flags.
