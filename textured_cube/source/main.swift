@@ -8,6 +8,11 @@
 //---------------------------------------------------------------------------------
 
 import CNDS
+import _Volatile
+
+// The GE texture-coordinate register, accessed directly from Swift via the
+// Embedded `_Volatile` module instead of a C shim. (GFX_TEX_COORD == 0x04000488)
+let GFX_TEX_COORD = VolatileMappedRegister<UInt32>(unsafeBitPattern: 0x04000488)
 
 @inline(__always) func rgb15(_ r: UInt16, _ g: UInt16, _ b: UInt16) -> UInt16 {
 	r | (g << 5) | (b << 10)
@@ -73,13 +78,13 @@ func drawQuad(_ poly: Int) {
 
 	glNormal(normals[poly])
 
-	nds_set_tex_coord(uv[0])
+	GFX_TEX_COORD.store(uv[0])
 	glVertex3v16(cubeVectors[f1 * 3], cubeVectors[f1 * 3 + 1], cubeVectors[f1 * 3 + 2])
-	nds_set_tex_coord(uv[1])
+	GFX_TEX_COORD.store(uv[1])
 	glVertex3v16(cubeVectors[f2 * 3], cubeVectors[f2 * 3 + 1], cubeVectors[f2 * 3 + 2])
-	nds_set_tex_coord(uv[2])
+	GFX_TEX_COORD.store(uv[2])
 	glVertex3v16(cubeVectors[f3 * 3], cubeVectors[f3 * 3 + 1], cubeVectors[f3 * 3 + 2])
-	nds_set_tex_coord(uv[3])
+	GFX_TEX_COORD.store(uv[3])
 	glVertex3v16(cubeVectors[f4 * 3], cubeVectors[f4 * 3 + 1], cubeVectors[f4 * 3 + 2])
 }
 

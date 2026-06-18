@@ -28,10 +28,12 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [sprite_rotate](sprite_rotate)   | `Graphics/Sprites/sprite_rotate` | `oamRotateScale`, size-doubling |
 | [bitmap_sprites](bitmap_sprites) | `Graphics/Sprites/bitmap_sprites` | Sprites in bitmap/256/16-colour formats |
 | [sprite_ext_palettes](sprite_ext_palettes) | `Graphics/Sprites/sprite_extended_palettes` | Extended sprite palettes |
+| [animate_simple](animate_simple) | `Graphics/Sprites/animate_simple` | Two sprite-animation strategies (copy vs. preload) |
 | [allocation_test](allocation_test) | `Graphics/Sprites/allocation_test` | Sprite-gfx allocator stress test, `oamAllocateGfx`/`Free` |
 | [ext_palettes_bg](ext_palettes_bg) | `Graphics/Ext_Palettes/backgrounds` | Extended BG palettes, 8bpp tiled BGs |
 | [rotscale_text](rotscale_text)   | `Graphics/Printing/rotscale_text` | Rotating/scaling text on an ExRotation BG |
 | [ortho](ortho)                   | `Graphics/3D/Ortho`         | Orthographic vs. perspective projection toggle |
+| [both_screens_3d](both_screens_3d) | `Graphics/3D/3D_Both_Screens` | 3D on both screens via display capture (cube + pyramid) |
 | [nehe1](nehe1)                   | `Graphics/3D/nehe/lesson01` | Minimal NeHe 3D setup |
 | [nehe2](nehe2)                   | `Graphics/3D/nehe/lesson02` | First polygons (triangle + quad) |
 | [nehe3](nehe3)                   | `Graphics/3D/nehe/lesson03` | Per-vertex colour |
