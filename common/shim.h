@@ -90,4 +90,8 @@ void nds_set_ext_spr_palette_f(int palette, int index, unsigned short color);
 void *nds_vram_e_ext_palette(int bg, int slot);
 void *nds_vram_h_ext_palette(int bg, int slot);
 
+// Stable pointers to the global OAM states (cast to OamState* on the Swift side).
+void *nds_oam_main(void);
+void *nds_oam_sub(void);
+
 #endif // SWIFT_NDS_SHIM_H

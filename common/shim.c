@@ -204,6 +204,9 @@ void *nds_vram_h_ext_palette(int bg, int slot) {
 	return &VRAM_H_EXT_PALETTE[bg][slot];
 }
 
+void *nds_oam_main(void) { return &oamMain; }
+void *nds_oam_sub(void)  { return &oamSub; }
+
 void nds_init_sub_sprites_grid(void) {
 	oamInit(&oamSub, SpriteMapping_Bmp_2D_256, false);
 
