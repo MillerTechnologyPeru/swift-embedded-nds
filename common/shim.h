@@ -83,4 +83,11 @@ void nds_init_sub_sprites_grid(void); // 4x3 grid of 64x64 bitmap sprites on the
 // Cearn's fixed-point atan2 (LUT + hardware divider). Returns [0,2pi), pi~0x4000.
 unsigned nds_atan2_lerp(int x, int y);
 
+// Write an entry of VRAM bank F's extended sprite palette (VRAM_F_EXT_SPR_PALETTE).
+void nds_set_ext_spr_palette_f(int palette, int index, unsigned short color);
+
+// Address of a [bg][slot] entry in the VRAM E / H extended BG palettes.
+void *nds_vram_e_ext_palette(int bg, int slot);
+void *nds_vram_h_ext_palette(int bg, int slot);
+
 #endif // SWIFT_NDS_SHIM_H

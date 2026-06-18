@@ -192,6 +192,18 @@ unsigned nds_atan2_lerp(int x, int y) {
 	return phi + (fa + ((fb - fa) * h >> ATANLUT_STRIDE_SHIFT)) / 8;
 }
 
+void nds_set_ext_spr_palette_f(int palette, int index, unsigned short color) {
+	VRAM_F_EXT_SPR_PALETTE[palette][index] = color;
+}
+
+void *nds_vram_e_ext_palette(int bg, int slot) {
+	return &VRAM_E_EXT_PALETTE[bg][slot];
+}
+
+void *nds_vram_h_ext_palette(int bg, int slot) {
+	return &VRAM_H_EXT_PALETTE[bg][slot];
+}
+
 void nds_init_sub_sprites_grid(void) {
 	oamInit(&oamSub, SpriteMapping_Bmp_2D_256, false);
 
