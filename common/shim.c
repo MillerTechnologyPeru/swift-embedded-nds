@@ -45,6 +45,10 @@ void nds_scanf_str(char *buf) {
 	iscanf("%s", buf);
 }
 
+void nds_printf_str(const char *fmt, const char *s) {
+	iprintf(fmt, s);
+}
+
 unsigned short *nds_sprite_palette(void) {
 	return SPRITE_PALETTE;
 }

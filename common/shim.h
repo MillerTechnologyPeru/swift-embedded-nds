@@ -35,6 +35,9 @@ void nds_printf_2f(const char *fmt, double a, double b);
 // iscanf(fmt, buf): read a whitespace-delimited string from stdin.
 void nds_scanf_str(char *buf);
 
+// iprintf(fmt, s): one string argument (%s).
+void nds_printf_str(const char *fmt, const char *s);
+
 // SPRITE_PALETTE / SPRITE_PALETTE_SUB pointer macros.
 unsigned short *nds_sprite_palette(void);
 unsigned short *nds_sprite_palette_sub(void);

@@ -54,6 +54,7 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [textured_cube](textured_cube)   | `Graphics/3D/Textured_Cube` | Texture blob, vertex/uv tables, display-capture motion blur |
 | [env_mapping](env_mapping)       | `Graphics/3D/Env_Mapping`   | `TEXGEN_NORMAL` reflection mapping, texture matrix |
 | [picking](picking)               | `Graphics/3D/Picking`       | 3D picking via `gluPickMatrix` + position test |
+| [boxtest](boxtest)               | `Graphics/3D/BoxTest`       | Hardware frustum `BoxTest`/`BoxTestf`, cull modes, vertex/poly RAM + `cpuTiming` readout |
 | [rotation](rotation)             | `Graphics/Backgrounds/rotation` | Raw bitmap+palette blobs, rotation/scale background |
 | [paletted_cube](paletted_cube)   | `Graphics/3D/Paletted_Cube` | **All DS texture formats** (grit `.tga` + compressed blobs), palette swap |
 | [gl2d_primitives](gl2d_primitives) | `Graphics/gl2d/primitives` | **Easy GL2D**: boxes/triangles/lines/pixels, `sinLerp` |
