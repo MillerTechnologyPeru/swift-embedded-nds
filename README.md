@@ -43,6 +43,7 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [nehe7](nehe7)                   | `Graphics/3D/nehe/lesson07` | Lit textured cube, normals, toggleable lighting |
 | [nehe8](nehe8)                   | `Graphics/3D/nehe/lesson08` | Alpha-blended translucent cube |
 | [nehe9](nehe9)                   | `Graphics/3D/nehe/lesson09` | Blended colour-cycling star field |
+| [nehe10](nehe10)                 | `Graphics/3D/nehe/lesson10` | Textured world walkthrough (runtime-parsed `World.txt`), hardware fog + shadow-polygon cube |
 | [nehe11](nehe11)                 | `Graphics/3D/nehe/lesson11` | Waving-flag texture grid mesh |
 | [mixed_text_3d](mixed_text_3d)   | `Graphics/3D/Mixed_Text_3D` | 3D + text console sharing one screen, `%f` printf |
 | [display_list](display_list)     | `Graphics/3D/Display_List`  | Hand-built display list (packed FIFO commands) |
