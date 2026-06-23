@@ -58,6 +58,7 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [picking](picking)               | `Graphics/3D/Picking`       | 3D picking via `gluPickMatrix` + position test |
 | [boxtest](boxtest)               | `Graphics/3D/BoxTest`       | Hardware frustum `BoxTest`/`BoxTestf`, cull modes, vertex/poly RAM + `cpuTiming` readout |
 | [rotation](rotation)             | `Graphics/Backgrounds/rotation` | Raw bitmap+palette blobs, rotation/scale background |
+| [all_in_one](all_in_one)         | `Graphics/Backgrounds/all_in_one` | ~40-demo menu: every BG type/size, HW+SW scrolling, mosaic/rotate/scale, ext palettes, multilayer — pre-assembled grit `.s` assets |
 | [paletted_cube](paletted_cube)   | `Graphics/3D/Paletted_Cube` | **All DS texture formats** (grit `.tga` + compressed blobs), palette swap |
 | [gl2d_primitives](gl2d_primitives) | `Graphics/gl2d/primitives` | **Easy GL2D**: boxes/triangles/lines/pixels, `sinLerp` |
 | [gl2d_dual_screen](gl2d_dual_screen) | `Graphics/gl2d/dual_screen` | GL2D mirrored to both screens via display capture |
@@ -94,6 +95,10 @@ Everything shared lives in [common/](common); each example is just a
 `DATA := data` (a directory of `.bin` blobs); both can be set at once.
 `EXTRA_HEADERS := …` lists hand-written headers (e.g. texture-packer uvcoord
 tables) to expose to Swift with the same `nds_asset_*()` accessor treatment.
+`ASM_ASSETS := asmdata` points at a directory of ready-made grit/Cearn `.s`
+data files (assembled and linked as-is); pair it with `EXTRA_HEADERS` for the
+matching `extern const …[]` declarations so the symbols reach Swift via the same
+`nds_asset_*()` accessors (used by [all_in_one](all_in_one)).
 
 ### Assets (grit + bin2o)
 

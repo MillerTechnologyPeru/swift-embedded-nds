@@ -114,6 +114,15 @@ ASSET_H		+=	$(addprefix $(BUILD)/,$(BINFILES:.bin=_bin.h)) $(addprefix $(BUILD)/
 ASSET_O		+=	$(addprefix $(BUILD)/,$(BINFILES:.bin=_bin.o)) $(addprefix $(BUILD)/,$(PCXFILES:.pcx=_pcx.o))
 endif
 
+# Pre-assembled data: a directory of ready-made grit/Cearn `.s` files shipped
+# with the example (paired with hand-written headers listed in EXTRA_HEADERS).
+ASM_ASSETS	?=
+ifneq ($(strip $(ASM_ASSETS)),)
+vpath %.s  $(ASM_ASSETS)
+ASMDATAFILES	:=	$(foreach dir,$(ASM_ASSETS),$(notdir $(wildcard $(dir)/*.s)))
+ASSET_O		+=	$(addprefix $(BUILD)/,$(ASMDATAFILES:.s=.o))
+endif
+
 # Hand-written headers (e.g. texture-packer uvcoord tables) to expose to Swift.
 EXTRA_HEADERS	?=
 
@@ -157,6 +166,11 @@ $(BUILD)/%_pcx.s $(BUILD)/%_pcx.h: %.pcx | $(BUILD)
 # generated data -> object (devkitARM)
 $(BUILD)/%.o: $(BUILD)/%.s
 	@echo $(notdir $<)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# pre-assembled ASM_ASSETS data (found via vpath) -> object (devkitARM)
+$(BUILD)/%.o: %.s | $(BUILD)
+	@echo assembling $(notdir $<)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Gather generated headers into one bridging header for Swift, and emit a

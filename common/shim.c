@@ -260,6 +260,23 @@ int posix_memalign(void **memptr, size_t alignment, size_t size) {
 // ARMv4t/v5te has no atomic instructions, so LLVM emits __atomic_* libcalls.
 // The Swift code runs only on the single ARM9 core, so a short interrupt lock
 // makes each operation atomic with respect to IRQ handlers.
+
+// 16-bit variants — needed by VolatileMappedRegister<UInt16> (hardware registers).
+uint16_t __atomic_load_2(const volatile void *ptr, int memorder) {
+	(void)memorder;
+	ArmIrqState st = armIrqLockByPsr();
+	uint16_t v = *(const volatile uint16_t *)ptr;
+	armIrqUnlockByPsr(st);
+	return v;
+}
+
+void __atomic_store_2(volatile void *ptr, uint16_t val, int memorder) {
+	(void)memorder;
+	ArmIrqState st = armIrqLockByPsr();
+	*(volatile uint16_t *)ptr = val;
+	armIrqUnlockByPsr(st);
+}
+
 uint32_t __atomic_load_4(const volatile void *ptr, int memorder) {
 	(void)memorder;
 	ArmIrqState st = armIrqLockByPsr();
