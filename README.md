@@ -67,6 +67,8 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [gl2d_scrolling](gl2d_scrolling) | `Graphics/gl2d/scrolling`   | GL2D tile-set scrolling engine + animated sprite, camera |
 | [gl2d_sprites](gl2d_sprites)     | `Graphics/gl2d/sprites`     | GL2D sprite rotate/scale/stretch/flip, palette-swap tint |
 | [gl2d_2dplus3d](gl2d_2dplus3d)   | `Graphics/gl2d/2Dplus3D`    | 3D textured mesh (ported vertex buffer) + GL2D 2D sprites, fixed-point atan2 |
+| [wifi_autoconnect](wifi_autoconnect) | `dswifi/autoconnect`    | **dswifi**: connect via firmware WFC settings, print DHCP IP/gateway/DNS |
+| [wifi_httpget](wifi_httpget)     | `dswifi/httpget`            | **dswifi**: DNS resolve + TCP socket + live HTTP/1.1 GET, prints response |
 | [exception_test](exception_test) | `debugging/exceptionTest`   | Default exception handler, raw memory access |
 
 ## Building
