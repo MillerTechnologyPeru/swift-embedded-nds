@@ -12,6 +12,7 @@
 #include <fat.h>
 #include <wfc.h>           // WlanBssDesc / WlanAuthData -- must precede shim.h
 #include <string.h>
+#include <time.h>          // time() / gmtime() (RealTimeClock)
 
 #include "shim.h"
 
@@ -71,8 +72,23 @@ void nds_printf_2i(const char *fmt, int a, int b) {
 	iprintf(fmt, a, b);
 }
 
+void nds_printf_3i(const char *fmt, int a, int b, int c) {
+	iprintf(fmt, a, b, c);
+}
+
 void nds_printf_4i(const char *fmt, int a, int b, int c, int d) {
 	iprintf(fmt, a, b, c, d);
+}
+
+void nds_rtc_read(int *year, int *month, int *day, int *hour, int *minute, int *second) {
+	time_t now = time(NULL);
+	struct tm *t = gmtime(&now);
+	*year   = t->tm_year + 1900;
+	*month  = t->tm_mon + 1;
+	*day    = t->tm_mday;
+	*hour   = t->tm_hour;
+	*minute = t->tm_min;
+	*second = t->tm_sec;
 }
 
 unsigned short nds_timer_freq_1024(int hz) {

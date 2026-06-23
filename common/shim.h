@@ -22,8 +22,15 @@ void nds_printf_1i(const char *fmt, int a);
 // iprintf(fmt, a, b)     -- two 32-bit arguments.
 void nds_printf_2i(const char *fmt, int a, int b);
 
+// iprintf(fmt, a, b, c)  -- three 32-bit arguments (e.g. HH:MM:SS).
+void nds_printf_3i(const char *fmt, int a, int b, int c);
+
 // iprintf(fmt, a, b, c, d) -- four 32-bit arguments (e.g. dotted-quad IP).
 void nds_printf_4i(const char *fmt, int a, int b, int c, int d);
+
+// Read the real-time clock (calico RTC). Fields: full year, month 1-12, day,
+// hour 0-23, minute, second.
+void nds_rtc_read(int *year, int *month, int *day, int *hour, int *minute, int *second);
 
 // TIMER_FREQ_1024(n) macro: reload value for a /1024-prescaled timer at n Hz.
 unsigned short nds_timer_freq_1024(int hz);

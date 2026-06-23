@@ -15,6 +15,7 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [console_windows](console_windows) | `Graphics/Printing/console_windows` | Multiple windowed consoles over one map |
 | [stopwatch](stopwatch)           | `time/stopwatch`            | Hardware timer elapsed/pause, formatted output |
 | [timercallback](timercallback)   | `time/timercallback`        | Timer IRQ callback (C function pointer), PSG sound |
+| [realtimeclock](realtimeclock)   | `time/RealTimeClock`        | RTC via `time()`/`gmtime`, digital + 3D analog watch face, day-of-week calc |
 | [keyboard_stdin](keyboard_stdin) | `input/keyboard/keyboard_stdin` | On-screen keyboard, callback field, `iscanf` stdin |
 | [keyboard_async](keyboard_async) | `input/keyboard/keyboard_async` | Polled keyboard via `keyboardUpdate` |
 | [sprites_simple](sprites_simple) | `Graphics/Sprites/simple`   | OAM sprites on both engines, VRAM banks, palettes |
