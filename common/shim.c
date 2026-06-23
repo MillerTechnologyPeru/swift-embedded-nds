@@ -1,8 +1,6 @@
 //---------------------------------------------------------------------------------
 // shim.c -- shared C support for the Swift NDS examples (see shim.h).
 //---------------------------------------------------------------------------------
-#include "shim.h"
-
 #include <nds.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +10,42 @@
 
 #include <calico/arm/common.h>
 #include <fat.h>
+#include <wfc.h>           // WlanBssDesc / WlanAuthData -- must precede shim.h
+#include <string.h>
+
+#include "shim.h"
+
+int nds_read_line(char *buf, int size) {
+	if (!fgets(buf, size, stdin)) return -1;
+	buf[strcspn(buf, "\n")] = 0;
+	return (int)strlen(buf);
+}
+
+// --- WlanBssDesc field access (struct-only, no wlan/wfc symbols referenced) ---
+unsigned nds_ap_ssid_len(const WlanBssDesc *ap) { return ap->ssid_len; }
+
+void nds_ap_get_ssid(const WlanBssDesc *ap, char *out) {
+	unsigned n = ap->ssid_len;
+	if (n > WLAN_MAX_SSID_LEN) n = WLAN_MAX_SSID_LEN;
+	memcpy(out, ap->ssid, n);
+	out[n] = 0;
+}
+
+void nds_ap_set_ssid(WlanBssDesc *ap, const char *s, unsigned n) {
+	if (n > WLAN_MAX_SSID_LEN) n = WLAN_MAX_SSID_LEN;
+	memcpy(ap->ssid, s, n);
+	ap->ssid_len = n;
+}
+
+unsigned nds_ap_auth_mask(const WlanBssDesc *ap) { return ap->auth_mask; }
+unsigned nds_ap_rssi(const WlanBssDesc *ap)      { return ap->rssi; }
+void nds_ap_set_auth_type(WlanBssDesc *ap, int t) { ap->auth_type = (WlanBssAuthType)t; }
+
+void nds_auth_clear(WlanAuthData *a) { memset(a, 0, sizeof(*a)); }
+void nds_auth_set_wep(WlanAuthData *a, const char *k, unsigned n) {
+	if (n > WLAN_WEP_128_LEN) n = WLAN_WEP_128_LEN;
+	memcpy(a->wep_key, k, n);
+}
 
 int nds_fat_init(void) {
 	return fatInitDefault() ? 1 : 0;
@@ -35,6 +69,10 @@ void nds_printf_1i(const char *fmt, int a) {
 
 void nds_printf_2i(const char *fmt, int a, int b) {
 	iprintf(fmt, a, b);
+}
+
+void nds_printf_4i(const char *fmt, int a, int b, int c, int d) {
+	iprintf(fmt, a, b, c, d);
 }
 
 unsigned short nds_timer_freq_1024(int hz) {

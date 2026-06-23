@@ -1,0 +1,6 @@
+# 16x64 source = four 16x16 frames, 16-colour sprite tiles.
+# (A 16-wide tile image already lays out each 16x16 frame as the correct 2x2
+#  1D-sprite tile block, so no meta-tiling is needed.)
+-gt        # tile graphics
+-gB4       # 4 bits per pixel (16 colours)
+-pe 16     # one 16-entry palette

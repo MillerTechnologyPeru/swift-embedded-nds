@@ -69,6 +69,7 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [gl2d_2dplus3d](gl2d_2dplus3d)   | `Graphics/gl2d/2Dplus3D`    | 3D textured mesh (ported vertex buffer) + GL2D 2D sprites, fixed-point atan2 |
 | [wifi_autoconnect](wifi_autoconnect) | `dswifi/autoconnect`    | **dswifi**: connect via firmware WFC settings, print DHCP IP/gateway/DNS |
 | [wifi_httpget](wifi_httpget)     | `dswifi/httpget`            | **dswifi**: DNS resolve + TCP socket + live HTTP/1.1 GET, prints response |
+| [wifi_ap_search](wifi_ap_search) | `dswifi/ap_search`         | **dswifi**: AP scan/select UI, signal-strength icon (VBlank IRQ), WEP/WPA key entry via on-screen keyboard, connect + DNS |
 | [exception_test](exception_test) | `debugging/exceptionTest`   | Default exception handler, raw memory access |
 
 ## Building
@@ -196,7 +197,9 @@ runtime work, not just more of the same translation:
 - **Filesystem** (`filesystem/*`) — libfat + DLDI / NitroFS. (The libfat *write*
   path is already exercised by [capture](capture); the dedicated `filesystem/*`
   demos additionally need NitroFS / directory traversal.)
-- **Wi-Fi** (`dswifi/*`) — the dswifi stack.
+- **Wi-Fi** (`dswifi/*`) — **done**: all three examples
+  ([wifi_autoconnect](wifi_autoconnect), [wifi_httpget](wifi_httpget),
+  [wifi_ap_search](wifi_ap_search)) are ported on the dswifi stack.
 - **Dual-CPU** (`pxi/*`, combined templates) — a separate ARM7 binary.
 - **Large GL2D demos** (`Graphics/gl2d/*`) — big, asset-heavy (but buildable on
   the existing grit + bin2o + GL foundations).

@@ -22,6 +22,9 @@ void nds_printf_1i(const char *fmt, int a);
 // iprintf(fmt, a, b)     -- two 32-bit arguments.
 void nds_printf_2i(const char *fmt, int a, int b);
 
+// iprintf(fmt, a, b, c, d) -- four 32-bit arguments (e.g. dotted-quad IP).
+void nds_printf_4i(const char *fmt, int a, int b, int c, int d);
+
 // TIMER_FREQ_1024(n) macro: reload value for a /1024-prescaled timer at n Hz.
 unsigned short nds_timer_freq_1024(int hz);
 
@@ -43,6 +46,26 @@ int nds_fat_init(void);
 
 // Write a buffer to a file via stdio (libfat-backed). Returns 1 on success, 0 on failure.
 int nds_write_file(const char *name, const void *data, unsigned len);
+
+// Read a line from stdin (keyboard), stripping the trailing newline.
+// Returns the length, or -1 on EOF. (ap_search SSID / key entry.)
+int nds_read_line(char *buf, int size);
+
+// WlanBssDesc field access (the struct has a union + a fixed char[] SSID that
+// import awkwardly into Swift). These only touch struct fields -- no wlan/wfc
+// calls -- so they add no dswifi link dependency to the shared shim.
+// (shim.h is only ever included after <wfc.h>/<dswifi9.h>, so the wlan typedefs
+//  are already visible here.)
+unsigned nds_ap_ssid_len(const WlanBssDesc *ap);
+void     nds_ap_get_ssid(const WlanBssDesc *ap, char *out); // null-terminated
+void     nds_ap_set_ssid(WlanBssDesc *ap, const char *s, unsigned n);
+unsigned nds_ap_auth_mask(const WlanBssDesc *ap);
+unsigned nds_ap_rssi(const WlanBssDesc *ap);
+void     nds_ap_set_auth_type(WlanBssDesc *ap, int t);
+
+// WlanAuthData helpers (also struct-only: no dswifi link dependency).
+void nds_auth_clear(WlanAuthData *a);
+void nds_auth_set_wep(WlanAuthData *a, const char *k, unsigned n);
 
 // SPRITE_PALETTE / SPRITE_PALETTE_SUB pointer macros.
 unsigned short *nds_sprite_palette(void);
