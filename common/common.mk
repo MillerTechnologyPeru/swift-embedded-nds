@@ -72,6 +72,31 @@ SWIFTFLAGS	:=	-target armv4t-none-none-eabi \
 OFILES		:=	$(BUILD)/main.swift.o $(BUILD)/shim.o
 
 #---------------------------------------------------------------------------------
+# Optional custom ARM7 binary.
+#
+# By default the ROM is packaged with calico's prebuilt ARM7 (ds7_maine.elf),
+# which handles the standard services (touch/sound/RTC/power). Set
+# `ARM7_SRC := arm7` (a directory of ARM7 C sources) to build and package a
+# *custom* ARM7 instead -- e.g. a PXI server that answers the ARM9. The ARM7
+# stays in C (low-level system code); only the ARM9 side is Embedded Swift.
+#---------------------------------------------------------------------------------
+ARM7_SRC	?=
+
+ifneq ($(strip $(ARM7_SRC)),)
+ARM7_CFILES	:=	$(foreach dir,$(ARM7_SRC),$(notdir $(wildcard $(dir)/*.c)))
+ARM7_OFILES	:=	$(addprefix $(BUILD)/arm7_,$(ARM7_CFILES:.c=.o))
+ARM7_ELF	:=	$(BUILD)/arm7.elf
+ARM7_ARCH	:=	-march=armv4t -mtune=arm7tdmi -mthumb
+ARM7_CFLAGS	:=	-g -Wall -Os -ffunction-sections -fdata-sections $(ARM7_ARCH) \
+			-DARM7 -D__NDS__ -I$(LIBNDS)/include -I$(CALICO)/include
+ARM7_LDFLAGS	:=	-specs=$(CALICO)/share/ds7.specs -g $(ARM7_ARCH) -Wl,--gc-sections \
+			-L$(LIBNDS)/lib -L$(CALICO)/lib
+vpath %.c $(ARM7_SRC)
+else
+ARM7_ELF	:=	$(CALICO)/bin/ds7_maine.elf
+endif
+
+#---------------------------------------------------------------------------------
 # Optional asset pipelines.
 #
 #   GRAPHICS -- directory of <name>.png/.bmp + <name>.grit pairs, converted with
@@ -199,13 +224,23 @@ $(BUILD)/shim.o: $(COMMON)shim.c $(COMMON)shim.h | $(BUILD)
 	@echo $(notdir $<)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Custom ARM7 sources -> object / elf (devkitARM, ds7 specs). Only used when
+# ARM7_SRC is set; otherwise $(ARM7_ELF) is calico's prebuilt ds7_maine.elf.
+$(BUILD)/arm7_%.o: %.c | $(BUILD)
+	@echo arm7 $(notdir $<)
+	$(CC) $(ARM7_CFLAGS) -c $< -o $@
+
+$(BUILD)/arm7.elf: $(ARM7_OFILES)
+	@echo linking arm7.elf
+	$(LD) $(ARM7_LDFLAGS) $(ARM7_OFILES) -lnds7 -lcalico_ds7 -o $@
+
 $(TARGET).elf: $(OFILES)
 	@echo linking $(notdir $@)
 	$(LD) $(LDFLAGS) $(OFILES) $(LIBS) -o $@
 
-$(TARGET).nds: $(TARGET).elf
+$(TARGET).nds: $(TARGET).elf $(ARM7_ELF)
 	@echo packaging $(notdir $@)
-	ndstool -c $@ -9 $< -7 $(CALICO)/bin/ds7_maine.elf \
+	ndstool -c $@ -9 $(TARGET).elf -7 $(ARM7_ELF) \
 		-b $(CALICO)/share/nds-icon.bmp "$(NDS_TITLE);$(NDS_SUBTITLE);swift-nds"
 
 clean:

@@ -16,6 +16,7 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [stopwatch](stopwatch)           | `time/stopwatch`            | Hardware timer elapsed/pause, formatted output |
 | [timercallback](timercallback)   | `time/timercallback`        | Timer IRQ callback (C function pointer), PSG sound |
 | [realtimeclock](realtimeclock)   | `time/RealTimeClock`        | RTC via `time()`/`gmtime`, digital + 3D analog watch face, day-of-week calc |
+| [pxi](pxi)                       | `pxi`                       | **Dual-CPU**: Swift ARM9 ↔ custom C ARM7 over a PXI channel (firmware JEDEC ID, touch pressure) |
 | [keyboard_stdin](keyboard_stdin) | `input/keyboard/keyboard_stdin` | On-screen keyboard, callback field, `iscanf` stdin |
 | [keyboard_async](keyboard_async) | `input/keyboard/keyboard_async` | Polled keyboard via `keyboardUpdate` |
 | [sprites_simple](sprites_simple) | `Graphics/Sprites/simple`   | OAM sprites on both engines, VRAM banks, palettes |
@@ -104,6 +105,11 @@ tables) to expose to Swift with the same `nds_asset_*()` accessor treatment.
 data files (assembled and linked as-is); pair it with `EXTRA_HEADERS` for the
 matching `extern const …[]` declarations so the symbols reach Swift via the same
 `nds_asset_*()` accessors (used by [all_in_one](all_in_one)).
+`ARM7_SRC := arm7` points at a directory of ARM7 C sources: instead of packaging
+calico's prebuilt ARM7, [common.mk](common/common.mk) compiles them with
+`ds7.specs` + `-lcalico_ds7` into a custom ARM7 binary and feeds that to
+`ndstool -7`. Only the ARM9 is Embedded Swift; the ARM7 stays C (low-level
+system code). Used by the dual-CPU [pxi](pxi) example.
 
 ### Assets (grit + bin2o)
 
@@ -201,7 +207,8 @@ runtime work, not just more of the same translation:
 - **Wi-Fi** (`dswifi/*`) — **done**: all three examples
   ([wifi_autoconnect](wifi_autoconnect), [wifi_httpget](wifi_httpget),
   [wifi_ap_search](wifi_ap_search)) are ported on the dswifi stack.
-- **Dual-CPU** (`pxi/*`, combined templates) — a separate ARM7 binary.
+- **Dual-CPU** — the [pxi](pxi) example is **done** (Swift ARM9 + a custom C
+  ARM7, via `ARM7_SRC`); the `combined` templates would reuse the same path.
 - **Large GL2D demos** (`Graphics/gl2d/*`) — big, asset-heavy (but buildable on
   the existing grit + bin2o + GL foundations).
 
