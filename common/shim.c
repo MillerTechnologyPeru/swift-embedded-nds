@@ -11,6 +11,19 @@
 #include <stddef.h>
 
 #include <calico/arm/common.h>
+#include <fat.h>
+
+int nds_fat_init(void) {
+	return fatInitDefault() ? 1 : 0;
+}
+
+int nds_write_file(const char *name, const void *data, unsigned len) {
+	FILE *f = fopen(name, "wb");
+	if (!f) return 0;
+	size_t n = fwrite(data, 1, len, f);
+	fclose(f);
+	return n == len ? 1 : 0;
+}
 
 void nds_puts(const char *s) {
 	iprintf("%s", s);

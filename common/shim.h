@@ -38,6 +38,12 @@ void nds_scanf_str(char *buf);
 // iprintf(fmt, s): one string argument (%s).
 void nds_printf_str(const char *fmt, const char *s);
 
+// libfat: mount the default filesystem (SD/flashcart). Returns nonzero on success.
+int nds_fat_init(void);
+
+// Write a buffer to a file via stdio (libfat-backed). Returns 1 on success, 0 on failure.
+int nds_write_file(const char *name, const void *data, unsigned len);
+
 // SPRITE_PALETTE / SPRITE_PALETTE_SUB pointer macros.
 unsigned short *nds_sprite_palette(void);
 unsigned short *nds_sprite_palette_sub(void);

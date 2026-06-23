@@ -57,6 +57,7 @@ toolchain and runs on real hardware / emulators (melonDS, DeSmuME).
 | [env_mapping](env_mapping)       | `Graphics/3D/Env_Mapping`   | `TEXGEN_NORMAL` reflection mapping, texture matrix |
 | [picking](picking)               | `Graphics/3D/Picking`       | 3D picking via `gluPickMatrix` + position test |
 | [boxtest](boxtest)               | `Graphics/3D/BoxTest`       | Hardware frustum `BoxTest`/`BoxTestf`, cull modes, vertex/poly RAM + `cpuTiming` readout |
+| [capture](capture)               | `Graphics/capture/ScreenShot` | Rotating bitmap/256/16-colour sprites, display capture → 24-bit BMP saved via **libfat** |
 | [rotation](rotation)             | `Graphics/Backgrounds/rotation` | Raw bitmap+palette blobs, rotation/scale background |
 | [all_in_one](all_in_one)         | `Graphics/Backgrounds/all_in_one` | ~40-demo menu: every BG type/size, HW+SW scrolling, mosaic/rotate/scale, ext palettes, multilayer — pre-assembled grit `.s` assets |
 | [paletted_cube](paletted_cube)   | `Graphics/3D/Paletted_Cube` | **All DS texture formats** (grit `.tga` + compressed blobs), palette swap |
@@ -190,7 +191,9 @@ What's left in the upstream example tree still needs its *own* toolchain or
 runtime work, not just more of the same translation:
 
 - **Audio** (`audio/maxmod/*`) — needs the `mmutil` soundbank pipeline.
-- **Filesystem** (`filesystem/*`) — libfat + DLDI / NitroFS.
+- **Filesystem** (`filesystem/*`) — libfat + DLDI / NitroFS. (The libfat *write*
+  path is already exercised by [capture](capture); the dedicated `filesystem/*`
+  demos additionally need NitroFS / directory traversal.)
 - **Wi-Fi** (`dswifi/*`) — the dswifi stack.
 - **Dual-CPU** (`pxi/*`, combined templates) — a separate ARM7 binary.
 - **Large GL2D demos** (`Graphics/gl2d/*`) — big, asset-heavy (but buildable on
