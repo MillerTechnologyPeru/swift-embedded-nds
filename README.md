@@ -134,10 +134,11 @@ Two ways to use the data:
 
 ### The build pipeline ([common.mk](common/common.mk))
 
-1. **Embedded Swift → object.** Targets `armv4t-none-none-eabi` — the prebuilt
-   Embedded stdlib ships an armv4t slice but no armv5te slice, and armv4t code
-   runs on the DS's ARM946E-S (armv5te is backwards compatible). Embedded clang
-   is pointed at newlib's headers, libnds, calico, and our module map.
+1. **Embedded Swift → object.** Targets `armv5te-none-none-eabi`, matching the
+   DS's ARM946E-S. Release toolchains only ship an armv4t Embedded stdlib
+   slice, so this needs a patched toolchain with an armv5te slice (set
+   `SWIFTC` in common.mk or on the command line). Embedded clang is pointed at
+   newlib's headers, libnds, calico, and our module map.
 2. **C shim → object** with devkitARM.
 3. **Link** against the modern calico-based libnds (`-specs=…/ds9.specs`,
    `-lnds9 -lcalico_ds9`).
@@ -159,7 +160,7 @@ Bridges the gaps between Embedded Swift and libnds:
   registers (`nds_motion_blur_*`).
 - **Runtime support devkitARM doesn't provide for this target:**
   - `posix_memalign` (Swift's allocator wants it; newlib only has `memalign`).
-  - `__atomic_*` outline helpers — armv4t has no atomic instructions, so LLVM
+  - `__atomic_*` outline helpers — armv5te has no atomic instructions, so LLVM
     emits libcalls; implemented with a short interrupt lock (safe on the single
     ARM9 core).
   - `arc4random_buf` — referenced by Swift's runtime; the NDS has no entropy

@@ -14,6 +14,9 @@ ifeq ($(strip $(DEVKITARM)),)
 $(error "Please set DEVKITARM in your environment. export DEVKITARM=$$DEVKITPRO/devkitARM")
 endif
 
+# Embedded Swift compiler. The armv5te target needs the patched toolchain
+# (release toolchains only ship an armv4t slice). Override on the command
+# line: make SWIFTC=/path/to/swiftc
 # Embedded Swift compiler. Override on the command line: make SWIFTC=/path/to/swiftc
 SWIFTC		?=	swiftc
 
@@ -54,11 +57,11 @@ LIBS		?=	-lnds9 -lcalico_ds9 -lm
 #---------------------------------------------------------------------------------
 # Embedded Swift flags.
 #
-# The prebuilt Embedded stdlib ships an armv4t slice but no armv5te slice;
-# armv4t code runs on the NDS's ARM946E-S (armv5te is backwards compatible).
+# The patched toolchain ships an armv5te Embedded stdlib slice, matching the
+# NDS's ARM946E-S, so Swift code is built as armv5te like the C side.
 # Embedded clang is pointed at newlib + libnds + calico + our module map.
 #---------------------------------------------------------------------------------
-SWIFTFLAGS	:=	-target armv4t-none-none-eabi \
+SWIFTFLAGS	:=	-target armv5te-none-none-eabi \
 			-enable-experimental-feature Embedded \
 			-wmo -Osize \
 			-Xcc -DARM9 -Xcc -D__NDS__ \
