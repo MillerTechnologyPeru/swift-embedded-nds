@@ -1,0 +1,59 @@
+name: Build examples
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DEVKITPRO: /opt/devkitpro
+  DEVKITARM: /opt/devkitpro/devkitARM
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # devkitPro ships the ARM9/ARM7 cross-compiler, libnds/calico, and the
+      # grit/bin2s/ndstool asset tools the examples' Makefiles depend on.
+      - name: Install devkitPro (nds-dev)
+        run: |
+          curl -L https://github.com/devkitPro/pacman/releases/latest/download/devkitpro-pacman-installer.pkg -o /tmp/devkitpro-pacman-installer.pkg
+          sudo installer -pkg /tmp/devkitpro-pacman-installer.pkg -target /
+          sudo dkp-pacman -Sy --noconfirm
+          sudo dkp-pacman -S --noconfirm nds-dev general-tools
+
+      # Armv5TE Embedded stdlib support landed upstream (swiftlang/swift#90023,
+      # swiftlang/swift#78348), so a main-branch nightly snapshot has it --
+      # unlike release toolchains, which only ship an armv4t slice. Snapshots
+      # are pruned, so resolve "latest" at run time instead of pinning a date.
+      - name: Install Swift nightly toolchain
+        run: |
+          curl -sL https://download.swift.org/development/xcode/latest-build.yml -o /tmp/latest-build.yml
+          SNAPSHOT_DIR=$(awk -F': ' '/^dir:/{print $2}' /tmp/latest-build.yml)
+          SNAPSHOT_PKG=$(awk -F': ' '/^download:/{print $2}' /tmp/latest-build.yml)
+          curl -L "https://download.swift.org/development/xcode/${SNAPSHOT_DIR}/${SNAPSHOT_PKG}" -o /tmp/swift-toolchain.pkg
+          sudo installer -pkg /tmp/swift-toolchain.pkg -target /
+          TOOLCHAIN_DIR=$(ls -d /Library/Developer/Toolchains/swift-*.xctoolchain | head -1)
+          echo "SWIFTC=$TOOLCHAIN_DIR/usr/bin/swiftc" >> "$GITHUB_ENV"
+
+      - name: Build all examples
+        run: |
+          export PATH="$DEVKITPRO/tools/bin:$DEVKITARM/bin:$PATH"
+          status=0
+          for dir in */; do
+            dir=${dir%/}
+            [ -f "$dir/Makefile" ] || continue
+            echo "::group::$dir"
+            make -C "$dir" SWIFTC="$SWIFTC" || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+
+      - name: Upload built ROMs
+        uses: actions/upload-artifact@v4
+        with:
+          name: nds-roms
+          path: '*/*.nds'
+          if-no-files-found: error
