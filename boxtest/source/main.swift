@@ -178,8 +178,8 @@ while System.mainLoop {
 
 	while GL.isBusy {} // wait for the geometry engine
 
-	glGetInt(GL_GET_VERTEX_RAM_COUNT, &vertexCount)
-	glGetInt(GL_GET_POLYGON_RAM_COUNT, &polygonCount)
+	GL.getInt(GL_GET_VERTEX_RAM_COUNT, &vertexCount)
+	GL.getInt(GL_GET_POLYGON_RAM_COUNT, &polygonCount)
 
 	Console.printf("\n\nRam usage: Culling %s", held.contains(.a) ? "none" : "back faces")
 	Console.printf("\nVertex ram: %i", vertexCount)
