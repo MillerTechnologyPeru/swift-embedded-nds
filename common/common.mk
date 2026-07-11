@@ -2,8 +2,9 @@
 # common.mk -- shared build rules for the Swift NDS examples.
 #
 # An example Makefile sets TARGET (and optionally NDS_TITLE / NDS_SUBTITLE) and
-# then `include ../common/common.mk`. Each example has a single source/main.swift;
-# the shared C support in common/ is compiled alongside it.
+# then `include ../common/common.mk`. Each example has a single source/main.swift,
+# compiled against the `NDS` overlay module and the `CNDS` C interop, both under
+# Sources/ (the Swift package).
 #---------------------------------------------------------------------------------
 .SUFFIXES:
 
@@ -20,8 +21,16 @@ endif
 # Embedded Swift compiler. Override on the command line: make SWIFTC=/path/to/swiftc
 SWIFTC		?=	swiftc
 
-# Directory holding this makefile (and the shared shim / module map).
+# Directory holding this makefile.
 COMMON		:=	$(dir $(lastword $(MAKEFILE_LIST)))
+
+# The Swift package. The C interop (module map, umbrella, shim) lives in the
+# CNDS target; the idiomatic overlay is the NDS target, compiled once as a
+# separate Embedded Swift module and linked into every example.
+PACKAGE		:=	$(COMMON)..
+CNDS_DIR	:=	$(PACKAGE)/Sources/CNDS
+NDS_DIR		:=	$(PACKAGE)/Sources/NDS
+NDS_SRC		:=	$(wildcard $(NDS_DIR)/*.swift)
 
 TARGET		?=	$(notdir $(CURDIR))
 NDS_TITLE	?=	$(TARGET)
@@ -41,7 +50,7 @@ LD		:=	$(PREFIX)gcc
 ARCH		:=	-march=armv5te -mtune=arm946e-s -mthumb
 
 # Modern libnds sits on calico: nds.h requires __NDS__ and pulls in <calico.h>.
-NDSDEFS		:=	-DARM9 -D__NDS__ -I$(COMMON) \
+NDSDEFS		:=	-DARM9 -D__NDS__ -I$(CNDS_DIR) \
 			-I$(LIBNDS)/include -I$(CALICO)/include
 
 CFLAGS		:=	-g -Wall -O2 -ffunction-sections -fdata-sections $(ARCH) \
@@ -67,12 +76,15 @@ SWIFTFLAGS	:=	-target armv5te-none-none-eabi \
 			-Xcc -DARM9 -Xcc -D__NDS__ \
 			-Xcc -march=armv5te -Xcc -mfloat-abi=soft \
 			-Xcc -isystem -Xcc $(DEVKITARM)/arm-none-eabi/include \
-			-Xcc -I$(COMMON) \
+			-Xcc -I$(CNDS_DIR) \
 			-Xcc -I$(LIBNDS)/include \
 			-Xcc -I$(CALICO)/include \
-			-Xcc -fmodule-map-file=$(COMMON)module.modulemap
+			-Xcc -fmodule-map-file=$(CNDS_DIR)/module.modulemap
 
-OFILES		:=	$(BUILD)/main.swift.o $(BUILD)/shim.o
+# The example's own main.swift finds the prebuilt NDS.swiftmodule in $(BUILD).
+SWIFTFLAGS	+=	-I$(BUILD)
+
+OFILES		:=	$(BUILD)/main.swift.o $(BUILD)/NDS.o $(BUILD)/shim.o
 
 #---------------------------------------------------------------------------------
 # Optional custom ARM7 binary.
@@ -154,10 +166,15 @@ endif
 # Hand-written headers (e.g. texture-packer uvcoord tables) to expose to Swift.
 EXTRA_HEADERS	?=
 
+# Asset flags apply only to the example's own main.swift (via ASSET_FLAGS below),
+# NOT to the shared NDS module -- the overlay never sees per-example grit symbols,
+# and folding them into SWIFTFLAGS would make the NDS.o rule depend on a
+# not-yet-generated assets.h.
+ASSET_FLAGS	:=
 ifneq ($(strip $(ASSET_H))$(strip $(EXTRA_HEADERS)),)
 ASSETS_H	:=	$(BUILD)/assets.h
 OFILES		+=	$(ASSET_O)
-SWIFTFLAGS	+=	-Xcc -I$(BUILD) -import-objc-header $(ASSETS_H)
+ASSET_FLAGS	:=	-Xcc -I$(BUILD) -import-objc-header $(ASSETS_H)
 SWIFTDEPS	:=	$(ASSETS_H) $(ASSET_H) $(EXTRA_HEADERS)
 endif
 
@@ -217,13 +234,24 @@ $(ASSETS_H): $(ASSET_H) $(EXTRA_HEADERS) | $(BUILD)
 	done
 	@printf '#endif\n' >> $@
 
-# Swift -> object
-$(BUILD)/main.swift.o: source/main.swift $(COMMON)module.modulemap $(COMMON)nds_umbrella.h $(COMMON)shim.h $(SWIFTDEPS) | $(BUILD)
+# NDS overlay module -> object (+ NDS.swiftmodule byproduct, emitted alongside).
+# @_exported import CNDS inside NDS re-exports the raw C layer, so `import NDS`
+# gives an example both the idiomatic wrappers and the underlying libnds API.
+# (Single target keeps this compatible with make 3.81, which lacks `&:`.)
+$(BUILD)/NDS.o: $(NDS_SRC) $(CNDS_DIR)/module.modulemap $(CNDS_DIR)/nds_umbrella.h $(CNDS_DIR)/shim.h | $(BUILD)
+	@echo compiling NDS module
+	$(SWIFTC) $(SWIFTFLAGS) -module-name NDS -parse-as-library \
+		-emit-module -emit-module-path $(BUILD)/NDS.swiftmodule \
+		-c $(NDS_SRC) -o $@
+
+# Swift -> object. Depends on NDS.o so NDS.swiftmodule exists before `import NDS`.
+# ASSET_FLAGS (the per-example grit bridging header) is added here only.
+$(BUILD)/main.swift.o: source/main.swift $(BUILD)/NDS.o $(SWIFTDEPS) | $(BUILD)
 	@echo compiling $(notdir $<)
-	$(SWIFTC) $(SWIFTFLAGS) -c $< -o $@
+	$(SWIFTC) $(SWIFTFLAGS) $(ASSET_FLAGS) -c $< -o $@
 
 # Shared C shim -> object (devkitARM)
-$(BUILD)/shim.o: $(COMMON)shim.c $(COMMON)shim.h | $(BUILD)
+$(BUILD)/shim.o: $(CNDS_DIR)/shim.c $(CNDS_DIR)/shim.h | $(BUILD)
 	@echo $(notdir $<)
 	$(CC) $(CFLAGS) -c $< -o $@
 
