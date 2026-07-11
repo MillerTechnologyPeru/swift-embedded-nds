@@ -67,7 +67,7 @@ func loadPaletted(_ texid: Int32, _ type: GL_TEXTURE_TYPE_ENUM,
 	GL.bindTexture(0, texid)
 	_ = GL.texImage2D(target: 0, type: type, sizeX: Int32(TEXTURE_SIZE_128.rawValue), sizeY: Int32(TEXTURE_SIZE_128.rawValue),
 	                  param: Int32(TEXGEN_TEXCOORD.rawValue), texture: bitmap)
-	glColorTableEXT(0, 0, count, 0, 0, pal.assumingMemoryBound(to: UInt16.self))
+	GL.colorTable(pal.assumingMemoryBound(to: UInt16.self), width: count)
 }
 
 var textureIDS = [Int32](repeating: 0, count: 8)
@@ -120,7 +120,7 @@ for i in 0 ..< 6 {
 		tempPalette[c] = i2Pal[c] | rgb15(tintColors[i].0, tintColors[i].1, tintColors[i].2)
 	}
 	GL.bindTexture(0, paletteIDS[i])
-	tempPalette.withUnsafeBufferPointer { glColorTableEXT(0, 0, 4, 0, 0, $0.baseAddress) }
+	tempPalette.withUnsafeBufferPointer { GL.colorTable($0.baseAddress, width: 4) }
 }
 
 // delete and recreate texture 0 just to show resource management works
@@ -129,7 +129,7 @@ _ = GL.deleteTextures(1, &textureIDS)
 GL.bindTexture(0, textureIDS[1])
 _ = GL.texImage2D(target: 0, type: GL_RGB4, sizeX: Int32(TEXTURE_SIZE_128.rawValue), sizeY: Int32(TEXTURE_SIZE_128.rawValue),
                   param: Int32(TEXGEN_TEXCOORD.rawValue), texture: nds_asset_i2Bitmap())
-glColorTableEXT(0, 0, 4, 0, 0, i2Pal)
+GL.colorTable(i2Pal, width: 4)
 
 loadPaletted(textureIDS[2], GL_RGB16, nds_asset_i4Bitmap(), nds_asset_i4Pal(), 16)
 loadPaletted(textureIDS[3], GL_RGB256, nds_asset_i8Bitmap(), nds_asset_i8Pal(), 256)
@@ -156,14 +156,14 @@ comp.withUnsafeMutableBytes { buf in
 	_ = GL.texImage2D(target: 0, type: GL_COMPRESSED, sizeX: Int32(TEXTURE_SIZE_128.rawValue), sizeY: Int32(TEXTURE_SIZE_128.rawValue),
 	                  param: Int32(TEXGEN_TEXCOORD.rawValue), texture: buf.baseAddress!)
 }
-glColorTableEXT(0, 0, UInt16(texture10_COMP_pal_bin_size >> 1), 0, 0,
-                nds_asset_texture10_COMP_pal_bin()!.assumingMemoryBound(to: UInt16.self))
+GL.colorTable(nds_asset_texture10_COMP_pal_bin()!.assumingMemoryBound(to: UInt16.self),
+              width: UInt16(texture10_COMP_pal_bin_size >> 1))
 
 // I2 again (recreated after the delete)
 GL.bindTexture(0, textureIDS[0])
 _ = GL.texImage2D(target: 0, type: GL_RGB4, sizeX: Int32(TEXTURE_SIZE_128.rawValue), sizeY: Int32(TEXTURE_SIZE_128.rawValue),
                   param: Int32(TEXGEN_TEXCOORD.rawValue), texture: nds_asset_i2Bitmap())
-glColorTableEXT(0, 0, 4, 0, 0, i2Pal)
+GL.colorTable(i2Pal, width: 4)
 
 GL.matrixMode(.projection)
 GL.loadIdentity()
@@ -203,7 +203,7 @@ while System.mainLoop {
 	for _ in 0 ..< 2 {
 		for i in 0 ..< 6 {
 			if nTexture == 1 {
-				glAssignColorTable(0, paletteIDS[i])   // palette-swap demo
+				GL.assignColorTable(name: paletteIDS[i])   // palette-swap demo
 			}
 			GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_BACK.rawValue)
 			           | UInt32(POLY_MODULATION.rawValue) | POLY_ID(polyid))
