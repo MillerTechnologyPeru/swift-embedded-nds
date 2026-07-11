@@ -6,52 +6,52 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 func drawGLScene() {
-	glLoadIdentity()
-	glTranslatef(-1.5, 0.0, -6.0)
-	glBegin(GL_TRIANGLES)
-		glVertex3f(0.0, 1.0, 0.0)
-		glVertex3f(-1.0, -1.0, 0.0)
-		glVertex3f(1.0, -1.0, 0.0)
-	glEnd()
-	glTranslatef(3.0, 0.0, 0.0)
-	glBegin(GL_QUADS)
-		glVertex3f(-1.0, 1.0, 0.0)
-		glVertex3f(1.0, 1.0, 0.0)
-		glVertex3f(1.0, -1.0, 0.0)
-		glVertex3f(-1.0, -1.0, 0.0)
-	glEnd()
+	GL.loadIdentity()
+	GL.translate(-1.5, 0.0, -6.0)
+	GL.begin(.triangles)
+		GL.vertex(0.0, 1.0, 0.0)
+		GL.vertex(-1.0, -1.0, 0.0)
+		GL.vertex(1.0, -1.0, 0.0)
+	GL.end()
+	GL.translate(3.0, 0.0, 0.0)
+	GL.begin(.quads)
+		GL.vertex(-1.0, 1.0, 0.0)
+		GL.vertex(1.0, 1.0, 0.0)
+		GL.vertex(1.0, -1.0, 0.0)
+		GL.vertex(-1.0, -1.0, 0.0)
+	GL.end()
 }
 
-videoSetMode(MODE_0_3D.rawValue)
-glInit()
-glEnable(Int32(GL_ANTIALIAS.rawValue))
+Video.setMode(.mode0_3D)
+GL.initialize()
+GL.enable(Int32(GL_ANTIALIAS.rawValue))
 
-glClearColor(0, 0, 0, 31)
-glClearPolyID(63)
-glClearDepth(0x7FFF)
+GL.clearColor(r: 0, g: 0, b: 0, a: 31)
+GL.clearPolyID(63)
+GL.clearDepth(0x7FFF)
 
-glViewport(0, 0, 255, 191)
+GL.viewport(0, 0, 255, 191)
 
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-gluPerspective(70, 256.0 / 192.0, 0.1, 100)
+GL.matrixMode(.projection)
+GL.loadIdentity()
+GL.perspective(fovy: 70, aspect: 256.0 / 192.0, near: 0.1, far: 100)
 
-glColor3f(1, 1, 1)
+GL.color(1, 1, 1)
 
-while pmMainLoop() {
-	glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
-	glMatrixMode(GL_MODELVIEW)
+while System.mainLoop {
+	GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
+	GL.matrixMode(.modelview)
 
-	glPushMatrix()
+	GL.pushMatrix()
 	drawGLScene()
-	glPopMatrix(1)
+	GL.popMatrix()
 
-	threadWaitForVBlank()
-	glFlush(0)
+	System.waitForVBlank()
+	GL.flush()
 
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 }
