@@ -7,24 +7,24 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
-videoSetMode(MODE_5_2D.rawValue)
-videoSetModeSub(MODE_0_2D.rawValue)   // sub bg 0 for the text console
+Video.setMode(.mode5_2D)
+Video.setModeSub(.mode0_2D)   // sub bg 0 for the text console
 
-vramSetBankA(VRAM_A_MAIN_BG)
+Video.setBankA(VRAM_A_MAIN_BG)
 
-consoleDemoInit()
-nds_puts("\n\n\tHello DS devers\n")
-nds_puts("\twww.drunkencoders.com\n")
-nds_puts("\t16 bit bitmap demo")
+Console.demoInit()
+Console.print("\n\n\tHello DS devers\n")
+Console.print("\twww.drunkencoders.com\n")
+Console.print("\t16 bit bitmap demo")
 
-bgInit(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0)
+_ = Background.main(layer: 3, kind: .bmp16, size: BgSize_B16_256x256, mapBase: 0, tileBase: 0)
 
-decompress(nds_asset_drunkenlogoBitmap(), nds_bg_gfx(), LZ77Vram)
+Decompress.run(nds_asset_drunkenlogoBitmap(), into: Background.gfx!, kind: .lz77Vram)
 
-while pmMainLoop() {
-	threadWaitForVBlank()
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+while System.mainLoop {
+	System.waitForVBlank()
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 }
