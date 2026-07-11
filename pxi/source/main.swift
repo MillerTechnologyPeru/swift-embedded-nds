@@ -12,52 +12,45 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
-
-// Function-like fixed-point macros (don't import).
-@inline(__always) func inttof32(_ n: Int32) -> Int32 { n << 12 }
-@inline(__always) func f32tofloat(_ n: Int32) -> Float { Float(n) / Float(1 << 12) }
-
-// KEY_TOUCH is BIT(14), which the importer drops.
-let KEY_TOUCH: UInt32 = 1 << 14
+import NDS
 
 //---------------------------------------------------------------------------------
 // pressure = 1/resistance = z1 / (x * (z2 - z1)), via the hardware divider,
 // arranged to avoid division by zero / the z1 == z2 indetermination.
 //---------------------------------------------------------------------------------
 func calcTouchPressure(_ px: UInt32, _ z1: UInt32, _ z2: UInt32) -> Int32 {
-	let num = divf32(Int32(bitPattern: z1), Int32(bitPattern: px))
+	let num = Math.divf32(Int32(bitPattern: z1), Int32(bitPattern: px))
 	let den = Int32(bitPattern: z2) - Int32(bitPattern: z1)
 	if num == den { return inttof32(1) }
-	return divf32(num, den)
+	return Math.divf32(num, den)
 }
 
 var touch = touchPosition()
 
-_ = consoleDemoInit()
+Console.demoInit()
 
 // Wait for the ARM7 PXI server to come up before sending commands.
 pxiWaitRemote(PxiChannel_User0)
 
-nds_puts("\n\n\tHello DS dev'rs\n")
-nds_puts("\thttps://devkitpro.org\n\n")
+Console.print("\n\n\tHello DS dev'rs\n")
+Console.print("\thttps://devkitpro.org\n\n")
 
 let jedec = pxiSendAndReceive(PxiChannel_User0, 0)   // command 0: firmware JEDEC ID
-nds_printf_1i("Firmware JEDEC ID: 0x%06lX\n", Int32(bitPattern: jedec))
+Console.printf("Firmware JEDEC ID: 0x%06lX\n", Int32(bitPattern: jedec))
 
-while pmMainLoop() {
-	threadWaitForVBlank()
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+while System.mainLoop {
+	System.waitForVBlank()
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 
-	if keysHeld() & KEY_TOUCH != 0 {
-		_ = touchRead(&touch)
+	if Keys.held.contains(.touch) {
+		_ = Touch.read(into: &touch)
 
 		let reply = pxiSendAndReceive(PxiChannel_User0, 1)   // command 1: raw Z1/Z2
 		let pressure = calcTouchPressure(UInt32(touch.rawx), reply & 0xFFF, reply >> 12)
 
-		nds_printf_2i("\u{1b}[10;0HTouch x = %04i, %04i\n", Int32(touch.rawx), Int32(touch.px))
-		nds_printf_2i("Touch y = %04i, %04i\n", Int32(touch.rawy), Int32(touch.py))
-		nds_printf_1f("Touch pressure: %.6f\n", Double(f32tofloat(pressure)))
+		Console.printf("\u{1b}[10;0HTouch x = %04i, %04i\n", Int32(touch.rawx), Int32(touch.px))
+		Console.printf("Touch y = %04i, %04i\n", Int32(touch.rawy), Int32(touch.py))
+		Console.printf("Touch pressure: %.6f\n", Double(f32tofloat(pressure)))
 	}
 }
