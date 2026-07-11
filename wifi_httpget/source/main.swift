@@ -7,7 +7,7 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 // htons: host (DS little-endian) -> network byte order. (Macro, doesn't import.)
 @inline(__always) func htons(_ x: UInt16) -> UInt16 { x.byteSwapped }
@@ -20,14 +20,14 @@ func getHTTP(_ url: String) {
 
 	// Resolve the server address.
 	guard let myhost = gethostbyname(url), myhost.pointee.h_addr_list[0] != nil else {
-		nds_puts("DNS lookup failed!\n")
+		Console.print("DNS lookup failed!\n")
 		return
 	}
-	nds_puts("Found IP Address!\n")
+	Console.print("Found IP Address!\n")
 
 	// Create a TCP socket.
 	let mySocket = socket(AF_INET, SOCK_STREAM, 0)
-	nds_puts("Created Socket!\n")
+	Console.print("Created Socket!\n")
 
 	// Connect to the resolved address on port 80.
 	var sain = sockaddr_in()
@@ -41,13 +41,13 @@ func getHTTP(_ url: String) {
 			_ = connect(mySocket, sp, socklen_t(MemoryLayout<sockaddr_in>.size))
 		}
 	}
-	nds_puts("Connected to server!\n")
+	Console.print("Connected to server!\n")
 
 	// Send the request.
 	var reqBytes = Array(request.utf8)
 	reqBytes.withUnsafeBytes { _ = send(mySocket, $0.baseAddress, reqBytes.count, 0) }
-	nds_puts("Sent our request!\n")
-	nds_puts("Printing incoming data:\n")
+	Console.print("Sent our request!\n")
+	Console.print("Printing incoming data:\n")
 
 	// Print incoming data until the server closes the connection.
 	var buffer = [CChar](repeating: 0, count: 256)
@@ -56,29 +56,29 @@ func getHTTP(_ url: String) {
 		if recvd == 0 { break }            // 0 == connection closed
 		if recvd > 0 {
 			buffer[Int(recvd)] = 0         // null-terminate
-			buffer.withUnsafeBufferPointer { nds_printf_str("%s", $0.baseAddress) }
+			buffer.withUnsafeBufferPointer { Console.printf("%s", $0.baseAddress!) }
 		}
 	}
 
-	nds_puts("Other side closed connection!")
+	Console.print("Other side closed connection!")
 	_ = shutdown(mySocket, 0)
 	_ = closesocket(mySocket)
 }
 
-_ = consoleDemoInit()
+Console.demoInit()
 
-nds_puts("\n\n\tSimple Wifi Connection Demo\n\n")
-nds_puts("Connecting via WFC data ...\n")
+Console.print("\n\n\tSimple Wifi Connection Demo\n\n")
+Console.print("Connecting via WFC data ...\n")
 
-if !Wifi_InitDefault(true) {   // WFC_CONNECT
-	nds_puts("Failed to connect!")
+if !Wifi.initDefault(useFirmwareSettings: true) {   // WFC_CONNECT
+	Console.print("Failed to connect!")
 } else {
-	nds_puts("Connected\n\n")
+	Console.print("Connected\n\n")
 	getHTTP("www.akkit.org")
 }
 
-while pmMainLoop() {
-	threadWaitForVBlank()
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+while System.mainLoop {
+	System.waitForVBlank()
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 }

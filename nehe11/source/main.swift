@@ -7,10 +7,7 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
-
-@inline(__always) func inttov16(_ n: Int32) -> Int32 { n << 12 }
-@inline(__always) func inttot16(_ n: Int32) -> Int16 { Int16(n << 4) }
+import NDS
 
 // points[64][32][3] of v16; flat-indexed.  stride: x -> 32*3, y -> 3
 var points = [Int16](repeating: 0, count: 64 * 32 * 3)
@@ -24,39 +21,39 @@ func loadGLTextures() {
 	var pcx = sImage()
 	loadPCX(nds_asset_drunkenlogo_pcx()!.assumingMemoryBound(to: UInt8.self), &pcx)
 	image8to16(&pcx)
-	glGenTextures(1, &texture0)
-	glBindTexture(0, texture0)
-	glTexImage2D(0, 0, GL_RGB, Int32(TEXTURE_SIZE_128.rawValue), Int32(TEXTURE_SIZE_128.rawValue),
-	             0, Int32(TEXGEN_TEXCOORD.rawValue), pcx.image.data8)
+	_ = GL.genTextures(1, &texture0)
+	GL.bindTexture(0, texture0)
+	_ = GL.texImage2D(target: 0, type: GL_RGB, sizeX: Int32(TEXTURE_SIZE_128.rawValue), sizeY: Int32(TEXTURE_SIZE_128.rawValue),
+	                  param: Int32(TEXGEN_TEXCOORD.rawValue), texture: pcx.image.data8)
 	imageDestroy(&pcx)
 }
 
 func drawGLScene() {
-	glColor3b(255, 255, 255)
-	glLoadIdentity()
-	glTranslatef(0, 0, -12.0)
-	glRotatef(xrot, 1, 0, 0)
-	glRotatef(yrot, 0, 1, 0)
-	glRotatef(zrot, 0, 0, 1)
-	glBindTexture(Int32(GL_TEXTURE_2D.rawValue), texture0)
-	glBegin(GL_QUADS)
+	GL.color(r: 255, g: 255, b: 255)
+	GL.loadIdentity()
+	GL.translate(0, 0, -12.0)
+	GL.rotate(xrot, 1, 0, 0)
+	GL.rotate(yrot, 0, 1, 0)
+	GL.rotate(zrot, 0, 0, 1)
+	GL.bindTexture(Int32(GL_TEXTURE_2D.rawValue), texture0)
+	GL.begin(.quads)
 	for x in 0 ..< 31 {
 		for y in 0 ..< 31 {
 			let fx = inttot16(Int32(x)) << 2
 			let fy = inttot16(Int32(y)) << 2
 			let fxb = inttot16(Int32(x + 1)) << 2
 			let fyb = inttot16(Int32(y + 1)) << 2
-			glTexCoord2t16(fx, fy)
-			glVertex3v16(points[pidx(x, y, 0)], points[pidx(x, y, 1)], points[pidx(x, y, 2)])
-			glTexCoord2t16(fx, fyb)
-			glVertex3v16(points[pidx(x, y + 1, 0)], points[pidx(x, y + 1, 1)], points[pidx(x, y + 1, 2)])
-			glTexCoord2t16(fxb, fyb)
-			glVertex3v16(points[pidx(x + 1, y + 1, 0)], points[pidx(x + 1, y + 1, 1)], points[pidx(x + 1, y + 1, 2)])
-			glTexCoord2t16(fxb, fy)
-			glVertex3v16(points[pidx(x + 1, y, 0)], points[pidx(x + 1, y, 1)], points[pidx(x + 1, y, 2)])
+			GL.texCoord16(fx, fy)
+			GL.vertex16(points[pidx(x, y, 0)], points[pidx(x, y, 1)], points[pidx(x, y, 2)])
+			GL.texCoord16(fx, fyb)
+			GL.vertex16(points[pidx(x, y + 1, 0)], points[pidx(x, y + 1, 1)], points[pidx(x, y + 1, 2)])
+			GL.texCoord16(fxb, fyb)
+			GL.vertex16(points[pidx(x + 1, y + 1, 0)], points[pidx(x + 1, y + 1, 1)], points[pidx(x + 1, y + 1, 2)])
+			GL.texCoord16(fxb, fy)
+			GL.vertex16(points[pidx(x + 1, y, 0)], points[pidx(x + 1, y, 1)], points[pidx(x + 1, y, 2)])
 		}
 	}
-	glEnd()
+	GL.end()
 
 	// every couple of frames, scroll the wave one column along x
 	if wiggleCount == 2 {
@@ -75,38 +72,38 @@ func drawGLScene() {
 	zrot += 0.4
 }
 
-videoSetMode(MODE_0_3D.rawValue)
-vramSetBankA(VRAM_A_TEXTURE)
-glInit()
-glEnable(Int32(GL_TEXTURE_2D.rawValue))
-glEnable(Int32(GL_ANTIALIAS.rawValue))
+Video.setMode(.mode0_3D)
+Video.setBankA(VRAM_A_TEXTURE)
+GL.initialize()
+GL.enable(Int32(GL_TEXTURE_2D.rawValue))
+GL.enable(Int32(GL_ANTIALIAS.rawValue))
 
-glClearColor(0, 0, 0, 31)
-glClearPolyID(63)
-glClearDepth(0x7FFF)
-glViewport(0, 0, 255, 191)
+GL.clearColor(r: 0, g: 0, b: 0, a: 31)
+GL.clearPolyID(63)
+GL.clearDepth(0x7FFF)
+GL.viewport(0, 0, 255, 191)
 
 loadGLTextures()
 
-// build the grid: x/y on a plane, z a sine ripple
+// build the grid: x/y on a plane, z a sine ripple (v16, wide intermediate)
 for x in 0 ..< 32 {
 	for y in 0 ..< 32 {
-		points[pidx(x, y, 0)] = Int16(inttov16(Int32(x)) / 4)
-		points[pidx(x, y, 1)] = Int16(inttov16(Int32(y)) / 4)
-		points[pidx(x, y, 2)] = sinLerp(Int16(truncatingIfNeeded: Int32(x) * ((1 << 15) / 32)))
+		points[pidx(x, y, 0)] = Int16((Int32(x) << 12) / 4)
+		points[pidx(x, y, 1)] = Int16((Int32(y) << 12) / 4)
+		points[pidx(x, y, 2)] = Math.sin(Int16(truncatingIfNeeded: Int32(x) * ((1 << 15) / 32)))
 	}
 }
 
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-gluPerspective(45, 256.0 / 192.0, 0.1, 100)
-glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
-glMatrixMode(GL_MODELVIEW)
+GL.matrixMode(.projection)
+GL.loadIdentity()
+GL.perspective(fovy: 45, aspect: 256.0 / 192.0, near: 0.1, far: 100)
+GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
+GL.matrixMode(.modelview)
 
-while pmMainLoop() {
+while System.mainLoop {
 	drawGLScene()
-	glFlush(0)
-	threadWaitForVBlank()
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+	GL.flush()
+	System.waitForVBlank()
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 }

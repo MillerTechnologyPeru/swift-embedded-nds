@@ -7,7 +7,7 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 private var play = true
 private var trigger = false   // set from the IRQ callback, polled in main
@@ -19,27 +19,27 @@ private func timerCallBack() {
 	trigger = true
 }
 
-consoleDemoInit()
-nds_puts("Timer callback demo\n")
+Console.demoInit()
+Console.print("Timer callback demo\n")
 
-soundEnable()
-let channel = soundPlayPSG(SoundDuty_50, 10000, 127, 64)
+Sound.enable()
+let channel = Sound.playPSG(duty: .d50, frequency: 10000)
 
-// calls timerCallBack 5 times per second (TIMER_FREQ_1024(5) via the shim).
-timerStart(0, ClockDivider_1024, nds_timer_freq_1024(5), timerCallBack)
+// calls timerCallBack 5 times per second.
+Timer.start(0, divider: .div1024, reload: Timer.ticksForFrequency1024(5), callback: timerCallBack)
 
-while pmMainLoop() {
-	threadWaitForVBlank()
-	scanKeys()
+while System.mainLoop {
+	System.waitForVBlank()
+	Keys.scan()
 
-	if keysDown() & KEY_START != 0 { break }
+	if Keys.down.contains(.start) { break }
 
 	if trigger {
 		trigger = false
 		if play {
-			soundResume(channel)
+			Sound.resume(channel)
 		} else {
-			soundPause(channel)
+			Sound.pause(channel)
 		}
 	}
 }

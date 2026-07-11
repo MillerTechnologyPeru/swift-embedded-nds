@@ -92,11 +92,62 @@ cd hello_world && make          # or any other example dir
 make SWIFTC=/path/to/swiftc      # if swiftc isn't the Embedded toolchain on PATH
 ```
 
+## The `NDS` Swift package
+
+The repo is a Swift package ([Package.swift](Package.swift)) that vends an
+idiomatic Swift overlay over libnds, so an example can `import NDS` and write
+
+```swift
+import NDS
+
+IRQ.vblank.set { frame += 1 }
+Console.demoInit()
+Console.print("Hello DS dev'rs\n")
+
+while System.mainLoop {
+    System.waitForVBlank()
+    Keys.scan()
+    if Keys.down.contains(.start) { break }
+}
+```
+
+instead of the raw C (`videoSetMode(MODE_0_2D.rawValue)`, `irqSet`, `nds_puts`, …).
+
+- **`Sources/CNDS`** is a systemLibrary target: the C interop (module map,
+  umbrella header, and the [shim](Sources/CNDS/shim.c)) that exposes `<nds.h>` +
+  gl2d + dswifi as `import CNDS`. This is the single source of truth the
+  Makefiles also use.
+- **`Sources/NDS`** is the overlay — one file per libnds subsystem
+  ([Video](Sources/NDS/Video.swift), [Background](Sources/NDS/Background.swift),
+  [Sprite](Sources/NDS/Sprite.swift), [Console](Sources/NDS/Console.swift),
+  [VideoGL](Sources/NDS/VideoGL.swift), [GL2D](Sources/NDS/GL2D.swift),
+  [Sound](Sources/NDS/Sound.swift), [Input](Sources/NDS/Input.swift),
+  [Timer](Sources/NDS/Timer.swift), [Interrupt](Sources/NDS/Interrupt.swift),
+  [DMA](Sources/NDS/DMA.swift), and the rest). Each C prefix becomes a caseless
+  `enum` namespace, C flag masks become `OptionSet`s (`Key`, `IRQ`), and the
+  macro-only APIs the importer drops (`RGB15`, `inttov16`, the pointer/register
+  macros) get real Swift types. Every wrapper is `@inline(__always)`, so it
+  compiles down to the exact underlying libnds call — zero overhead.
+
+`Sources/NDS/Exports.swift` does `@_exported import CNDS`, so `import NDS` also
+re-exports the full raw libnds API: nothing is hidden, and the two styles mix
+freely. **Every example is ported to the overlay** — each `source/main.swift`
+does `import NDS` and uses the idiomatic wrappers (`Video`, `Background`,
+`Sprite`/`OAM`, `GL`, `GL2D`, `Keys`, `Console`, `Wifi`, …), dropping to raw
+`CNDS`/`_Volatile` only for the handful of genuinely low-level bits (custom
+hardware registers in [capture](capture) / [all_in_one](all_in_one), the
+`glColorTableEXT` palette calls, raw sockets in [wifi_httpget](wifi_httpget)).
+
+> **Note:** SwiftPM cannot cross-compile Embedded Swift to the DS's bare-metal
+> `armv5te`, so `swift build` does not produce a `.nds`. The package is a *source
+> library*; the Makefiles below compile the `NDS` target into a standalone
+> Embedded Swift module and link it into each ROM.
+
 ## How it works
 
-Everything shared lives in [common/](common); each example is just a
-`source/main.swift` plus a three-line Makefile that sets `TARGET` and
-`include`s [common/common.mk](common/common.mk). Examples with assets set
+Everything shared lives in [common/](common) and [Sources/](Sources); each
+example is just a `source/main.swift` plus a three-line Makefile that sets
+`TARGET` and `include`s [common/common.mk](common/common.mk). Examples with assets set
 `GRAPHICS := gfx` (a directory of `.png`/`.bmp`/`.tga` + `.grit` pairs) and/or
 `DATA := data` (a directory of `.bin` blobs); both can be set at once.
 `EXTRA_HEADERS := …` lists hand-written headers (e.g. texture-packer uvcoord
@@ -134,17 +185,22 @@ Two ways to use the data:
 
 ### The build pipeline ([common.mk](common/common.mk))
 
-1. **Embedded Swift → object.** Targets `armv5te-none-none-eabi`, matching the
-   DS's ARM946E-S. Release toolchains only ship an armv4t Embedded stdlib
-   slice, so this needs a patched toolchain with an armv5te slice (set
-   `SWIFTC` in common.mk or on the command line). Embedded clang is pointed at
-   newlib's headers, libnds, calico, and our module map.
-2. **C shim → object** with devkitARM.
-3. **Link** against the modern calico-based libnds (`-specs=…/ds9.specs`,
-   `-lnds9 -lcalico_ds9`).
-4. **Package** the `.nds` with `ndstool` (calico's prebuilt ARM7 + default icon).
+1. **`NDS` overlay module → object + `.swiftmodule`.** The
+   [Sources/NDS](Sources/NDS) files are compiled once as a standalone Embedded
+   Swift module (`-module-name NDS -parse-as-library -emit-module`), producing
+   `NDS.o` and `NDS.swiftmodule` in the example's `build/`.
+2. **Embedded Swift `main.swift` → object.** Targets `armv5te-none-none-eabi`,
+   matching the DS's ARM946E-S, and imports the `NDS` module built in step 1.
+   Release toolchains only ship an armv4t Embedded stdlib slice, so this needs a
+   patched toolchain with an armv5te slice (set `SWIFTC` in common.mk or on the
+   command line). Embedded clang is pointed at newlib's headers, libnds, calico,
+   and the [Sources/CNDS](Sources/CNDS) module map.
+3. **C shim → object** with devkitARM ([Sources/CNDS/shim.c](Sources/CNDS/shim.c)).
+4. **Link** `main.swift.o` + `NDS.o` + `shim.o` against the modern calico-based
+   libnds (`-specs=…/ds9.specs`, `-lnds9 -lcalico_ds9`).
+5. **Package** the `.nds` with `ndstool` (calico's prebuilt ARM7 + default icon).
 
-### The C shim ([common/shim.c](common/shim.c), [shim.h](common/shim.h))
+### The C shim ([Sources/CNDS/shim.c](Sources/CNDS/shim.c), [shim.h](Sources/CNDS/shim.h))
 
 Bridges the gaps between Embedded Swift and libnds:
 
@@ -168,8 +224,9 @@ Bridges the gaps between Embedded Swift and libnds:
 
 ### Swift ↔ libnds interop notes
 
-- `import CNDS` ([common/module.modulemap](common/module.modulemap)) exposes
-  `<nds.h>` + the shim.
+- `import CNDS` ([Sources/CNDS/module.modulemap](Sources/CNDS/module.modulemap))
+  exposes `<nds.h>` + the shim; `import NDS` adds the idiomatic overlay on top
+  (and re-exports `CNDS`).
 - A non-capturing top-level Swift function bridges automatically to the C
   function-pointer types used by `irqSet` / `timerStart`, and can be assigned
   to a callback *field* on a struct too (e.g. `kbd.pointee.OnKeyPressed = …`).

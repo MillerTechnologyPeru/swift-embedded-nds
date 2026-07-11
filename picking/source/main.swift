@@ -8,15 +8,7 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
-
-@inline(__always) func rgb15(_ r: UInt16, _ g: UInt16, _ b: UInt16) -> UInt16 {
-	r | (g << 5) | (b << 10)
-}
-@inline(__always) func floattof32(_ n: Float) -> Int32 { Int32(n * Float(1 << 12)) }
-@inline(__always) func floattov10(_ n: Float) -> Int16 {
-	n > 0.998 ? 0x1FF : Int16(n * Float(1 << 9))
-}
+import NDS
 
 enum Clickable: UInt32 { case nothing, cone, cylinder, sphere }
 
@@ -26,47 +18,47 @@ var polyCount: UInt32 = 0           // polygon count snapshot
 
 // run before drawing an object during the picking pass
 func startCheck() {
-	while nds_gfx_busy() != 0 {}     // wait for the previous object
-	while PosTestBusy() {}           // wait for any position test
-	PosTest_Asynch(0, 0, 0)          // start a test at the current position
-	polyCount = nds_gfx_polygon_ram_usage()
+	while GL.isBusy {}               // wait for the previous object
+	while PosTest.isBusy {}          // wait for any position test
+	PosTest.testAsync(x: 0, y: 0, z: 0)   // start a test at the current position
+	polyCount = GL.polygonRamUsage
 }
 
 // run after drawing an object during the picking pass
 func endCheck(_ obj: Clickable) {
-	while nds_gfx_busy() != 0 {}
-	while PosTestBusy() {}
-	if nds_gfx_polygon_ram_usage() > polyCount {   // a polygon was drawn
-		if PosTestWresult() <= closeW {
-			closeW = PosTestWresult()
+	while GL.isBusy {}
+	while PosTest.isBusy {}
+	if GL.polygonRamUsage > polyCount {   // a polygon was drawn
+		if PosTest.w <= closeW {
+			closeW = PosTest.w
 			clicked = obj
 		}
 	}
 }
 
-glInit()
+GL.initialize()
 
 var rotateX: Int32 = 0
 var rotateY: Int32 = 0
 
-videoSetMode(MODE_0_3D.rawValue)
+Video.setMode(.mode0_3D)
 
 var touchXY = touchPosition()
 
-lcdMainOnBottom()   // we will be touching the 3D display
+System.lcdMainOnBottom()   // we will be touching the 3D display
 
-glEnable(Int32(GL_OUTLINE.rawValue))
-glSetOutlineColor(0, rgb15(31, 31, 31))   // first outline colour = white
+GL.enable(Int32(GL_OUTLINE.rawValue))
+GL.setOutlineColor(id: 0, color: Color(r: 31, g: 31, b: 31))   // first outline colour = white
 
 var viewport: [Int32] = [0, 0, 255, 191]
 
-glClearColor(0, 0, 0, 0)
-glClearPolyID(0)
-glClearDepth(0x7FFF)
+GL.clearColor(r: 0, g: 0, b: 0, a: 0)
+GL.clearPolyID(0)
+GL.clearDepth(0x7FFF)
 
-gluLookAt(0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+GL.lookAt(eye: (0.0, 0.0, 1.0), center: (0.0, 0.0, 0.0), up: (0.0, 1.0, 0.0))
 
-glLight(0, rgb15(31, 31, 31), 0, floattov10(-1.0), 0)
+GL.light(0, color: Color(r: 31, g: 31, b: 31), x: 0, y: floattov10(-1.0), z: 0)
 
 let cone = nds_asset_cone_bin()!.assumingMemoryBound(to: UInt32.self)
 let cylinder = nds_asset_cylinder_bin()!.assumingMemoryBound(to: UInt32.self)
@@ -74,80 +66,80 @@ let sphere = nds_asset_sphere_bin()!.assumingMemoryBound(to: UInt32.self)
 
 func polyFmt(outline: Bool) {
 	let id = POLY_ID(outline ? 1 : 0)
-	glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_BACK.rawValue)
-	          | UInt32(POLY_FORMAT_LIGHT0.rawValue) | id)
+	GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_BACK.rawValue)
+	           | UInt32(POLY_FORMAT_LIGHT0.rawValue) | id)
 }
 
-while pmMainLoop() {
-	threadWaitForVBlank()
+while System.mainLoop {
+	System.waitForVBlank()
 
-	scanKeys()
-	let keys = keysHeld()
-	if keys & KEY_UP == 0    { rotateX += 3 }
-	if keys & KEY_DOWN == 0  { rotateX -= 3 }
-	if keys & KEY_LEFT == 0  { rotateY += 3 }
-	if keys & KEY_RIGHT == 0 { rotateY -= 3 }
+	Keys.scan()
+	let keys = Keys.held
+	if !keys.contains(.up)    { rotateX += 3 }
+	if !keys.contains(.down)  { rotateX -= 3 }
+	if !keys.contains(.left)  { rotateY += 3 }
+	if !keys.contains(.right) { rotateY -= 3 }
 
-	touchRead(&touchXY)
+	_ = Touch.read(into: &touchXY)
 
-	glViewport(0, 0, 255, 191)
+	GL.viewport(0, 0, 255, 191)
 
-	glMatrixMode(GL_PROJECTION)
-	glLoadIdentity()
-	gluPerspective(60, 256.0 / 192.0, 0.1, 20)
+	GL.matrixMode(.projection)
+	GL.loadIdentity()
+	GL.perspective(fovy: 60, aspect: 256.0 / 192.0, near: 0.1, far: 20)
 
-	glMatrixMode(GL_MODELVIEW)
+	GL.matrixMode(.modelview)
 
-	glPushMatrix()
+	GL.pushMatrix()
 
-	glTranslatef32(0, 0, floattof32(-6))
-	glRotateXi(rotateX)
-	glRotateYi(rotateY)
+	GL.translatef32(0, 0, floattof32(-6))
+	GL.rotateXi(rotateX)
+	GL.rotateYi(rotateY)
 
 	// ---- pass 1: draw the scene for display ----
-	glPushMatrix()
+	GL.pushMatrix()
 
-	glTranslatef32(floattof32(2.9), floattof32(0), floattof32(0))
+	GL.translatef32(floattof32(2.9), floattof32(0), floattof32(0))
 	polyFmt(outline: clicked == .cone)
-	glCallList(cone)   // green cone
+	GL.callList(cone)   // green cone
 
-	glTranslatef32(floattof32(-3), floattof32(1.8), floattof32(2))
+	GL.translatef32(floattof32(-3), floattof32(1.8), floattof32(2))
 	polyFmt(outline: clicked == .cylinder)
-	glCallList(cylinder)   // blue cylinder
+	GL.callList(cylinder)   // blue cylinder
 
-	glTranslatef32(floattof32(0.5), floattof32(-2.6), floattof32(-4))
+	GL.translatef32(floattof32(0.5), floattof32(-2.6), floattof32(-4))
 	polyFmt(outline: clicked == .sphere)
-	glCallList(sphere)   // red sphere
+	GL.callList(sphere)   // red sphere
 
-	glPopMatrix(1)
+	GL.popMatrix()
 
 	// ---- pass 2: draw again, off-screen, for picking ----
 	clicked = .nothing
 	closeW = 0x7FFFFFFF
 
-	glViewport(0, 192, 0, 192)   // off-screen: hides the picking render
+	GL.viewport(0, 192, 0, 192)   // off-screen: hides the picking render
 
-	glMatrixMode(GL_PROJECTION)
-	glLoadIdentity()
+	GL.matrixMode(.projection)
+	GL.loadIdentity()
 	viewport.withUnsafeBufferPointer { vp in
 		gluPickMatrix(Int32(touchXY.px), 191 - Int32(touchXY.py), 4, 4, vp.baseAddress)
 	}
-	gluPerspective(60, 256.0 / 192.0, 0.1, 20)   // must match the display frustum
+	GL.perspective(fovy: 60, aspect: 256.0 / 192.0, near: 0.1, far: 20)   // must match the display frustum
 
-	glMatrixMode(GL_MODELVIEW)
+	GL.matrixMode(.modelview)
 
-	glTranslatef32(floattof32(2.9), floattof32(0), floattof32(0))
-	startCheck(); glCallList(cone); endCheck(.cone)
+	GL.translatef32(floattof32(2.9), floattof32(0), floattof32(0))
+	startCheck(); GL.callList(cone); endCheck(.cone)
 
-	glTranslatef32(floattof32(-3), floattof32(1.8), floattof32(2))
-	startCheck(); glCallList(cylinder); endCheck(.cylinder)
+	GL.translatef32(floattof32(-3), floattof32(1.8), floattof32(2))
+	startCheck(); GL.callList(cylinder); endCheck(.cylinder)
 
-	glTranslatef32(floattof32(0.5), floattof32(-2.6), floattof32(-4))
-	startCheck(); glCallList(sphere); endCheck(.sphere)
+	GL.translatef32(floattof32(0.5), floattof32(-2.6), floattof32(-4))
+	startCheck(); GL.callList(sphere); endCheck(.sphere)
 
-	glPopMatrix(1)
+	GL.popMatrix()
 
-	glFlush(0)
+	GL.flush()
 
-	if keys & KEY_START != 0 { break }
+	if keys.contains(.start) { break }
 }

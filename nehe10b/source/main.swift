@@ -4,34 +4,15 @@
 //
 //  The all-fixed-point variant of lesson 10: the textured world is stored as
 //  v16/t16 fixed-point vertices and the camera runs entirely on integer LUT
-//  angles (sinLerp/cosLerp, glRotatef32i) — no floats, no fog, no shadow cube.
+//  angles (Math.sin/Math.cos, GL.rotatef32i) — no floats, no fog, no shadow cube.
 //
 //  Controls: D-pad walk/turn, A/B look up/down, START to quit.
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 let LUT_SIZE: Int32 = 1 << 15   // full circle in sinLerp angle units
-
-//---------------------------------------------------------------------------------
-// Fixed-point conversion helpers (function-like macros that don't import).
-//---------------------------------------------------------------------------------
-@inline(__always) func RGB15(_ r: UInt16, _ g: UInt16, _ b: UInt16) -> UInt16 {
-	r | (g << 5) | (b << 10)
-}
-@inline(__always) func floattov10(_ n: Float) -> Int16 {
-	n > 0.998 ? 0x1FF : Int16(n * Float(1 << 9))
-}
-@inline(__always) func floattov16(_ n: Float) -> Int16 {
-	Int16(truncatingIfNeeded: Int32(n * Float(1 << 12)))
-}
-@inline(__always) func floattot16(_ n: Float) -> Int16 {
-	Int16(truncatingIfNeeded: Int32(n * Float(1 << 4)))
-}
-@inline(__always) func normalPack(_ x: Int32, _ y: Int32, _ z: Int32) -> UInt32 {
-	UInt32(bitPattern: (x & 0x3FF) | ((y & 0x3FF) << 10) | (z << 20))
-}
 
 //---------------------------------------------------------------------------------
 // World model: fixed-point textured triangles, parsed from the embedded World.bin.
@@ -130,11 +111,11 @@ func loadGLTextures() {
 	var pcx = sImage()
 	loadPCX(nds_asset_Mud_pcx()!.assumingMemoryBound(to: UInt8.self), &pcx)
 	image8to16(&pcx)
-	glGenTextures(1, &texture)
-	glBindTexture(0, texture)
-	glTexImage2D(0, 0, GL_RGB, Int32(TEXTURE_SIZE_128.rawValue), Int32(TEXTURE_SIZE_128.rawValue), 0,
-	             Int32(TEXGEN_TEXCOORD.rawValue | GL_TEXTURE_WRAP_S.rawValue | GL_TEXTURE_WRAP_T.rawValue),
-	             pcx.image.data8)
+	_ = GL.genTextures(1, &texture)
+	GL.bindTexture(0, texture)
+	_ = GL.texImage2D(target: 0, type: GL_RGB, sizeX: Int32(TEXTURE_SIZE_128.rawValue), sizeY: Int32(TEXTURE_SIZE_128.rawValue),
+	                  param: Int32(TEXGEN_TEXCOORD.rawValue | GL_TEXTURE_WRAP_S.rawValue | GL_TEXTURE_WRAP_T.rawValue),
+	                  texture: pcx.image.data8)
 	imageDestroy(&pcx)
 }
 
@@ -155,81 +136,81 @@ func drawGLScene() {
 	let ytrans = -walkbias - (1 << 10)
 	let sceneroty = LUT_SIZE - yrot
 
-	glLoadIdentity()
-	glRotatef32i(lookupdown, 1 << 12, 0, 0)
-	glRotatef32i(sceneroty, 0, 1 << 12, 0)
-	glTranslatef32(xtrans, ytrans, ztrans)
-	glBindTexture(Int32(GL_TEXTURE_2D.rawValue), texture)
+	GL.loadIdentity()
+	GL.rotatef32i(lookupdown, 1 << 12, 0, 0)
+	GL.rotatef32i(sceneroty, 0, 1 << 12, 0)
+	GL.translatef32(xtrans, ytrans, ztrans)
+	GL.bindTexture(Int32(GL_TEXTURE_2D.rawValue), texture)
 
 	for tri in world {
-		glBegin(GL_TRIANGLES)
-		glNormal(normalPack(0, 0, 1 << 10))
+		GL.begin(.triangles)
+		GL.normal(NORMAL_PACK(0, 0, 1 << 10))
 		for vert in 0 ..< 3 {
-			glTexCoord2t16(tri.v[vert].u, tri.v[vert].v)
-			glVertex3v16(tri.v[vert].x, tri.v[vert].y, tri.v[vert].z)
+			GL.texCoord16(tri.v[vert].u, tri.v[vert].v)
+			GL.vertex16(tri.v[vert].x, tri.v[vert].y, tri.v[vert].z)
 		}
-		glEnd()
+		GL.end()
 	}
 }
 
 //---------------------------------------------------------------------------------
 // Setup
 //---------------------------------------------------------------------------------
-videoSetMode(MODE_0_3D.rawValue)
-vramSetBankA(VRAM_A_TEXTURE)
+Video.setMode(.mode0_3D)
+Video.setBankA(VRAM_A_TEXTURE)
 
-glInit()
-glEnable(Int32(GL_TEXTURE_2D.rawValue))
-glEnable(Int32(GL_ANTIALIAS.rawValue))
+GL.initialize()
+GL.enable(Int32(GL_TEXTURE_2D.rawValue))
+GL.enable(Int32(GL_ANTIALIAS.rawValue))
 
-glClearColor(0, 0, 0, 31)
-glClearPolyID(63)
-glClearDepth(0x7FFF)
-glViewport(0, 0, 255, 191)
+GL.clearColor(r: 0, g: 0, b: 0, a: 31)
+GL.clearPolyID(63)
+GL.clearDepth(0x7FFF)
+GL.viewport(0, 0, 255, 191)
 
 loadGLTextures()
 setupWorld()
 
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-gluPerspective(70, 256.0 / 192.0, 0.1, 100)
+GL.matrixMode(.projection)
+GL.loadIdentity()
+GL.perspective(fovy: 70, aspect: 256.0 / 192.0, near: 0.1, far: 100)
 
-glColor3f(1, 1, 1)
-glLight(0, RGB15(31, 31, 31), 0, floattov10(-1.0), 0)
+GL.color(1, 1, 1)
+GL.light(0, color: Color(r: 31, g: 31, b: 31), x: 0, y: floattov10(-1.0), z: 0)
 
-glMaterialf(GL_AMBIENT,  RGB15(16, 16, 16))
-glMaterialf(GL_DIFFUSE,  RGB15(16, 16, 16))
-glMaterialf(GL_SPECULAR, (UInt16(1) << 15) | RGB15(8, 8, 8))
-glMaterialf(GL_EMISSION, RGB15(16, 16, 16))
-glMaterialShinyness()
+GL.material(GL_AMBIENT,  Color(r: 16, g: 16, b: 16))
+GL.material(GL_DIFFUSE,  Color(r: 16, g: 16, b: 16))
+GL.material(GL_SPECULAR, Color(rawValue: (UInt16(1) << 15) | Color(r: 8, g: 8, b: 8).rawValue))
+GL.material(GL_EMISSION, Color(r: 16, g: 16, b: 16))
+GL.materialShininess()
 
-glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue) | UInt32(POLY_FORMAT_LIGHT0.rawValue))
-glMatrixMode(GL_MODELVIEW)
+GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue) | UInt32(POLY_FORMAT_LIGHT0.rawValue))
+GL.matrixMode(.modelview)
 
-while pmMainLoop() {
-	scanKeys()
-	let held = keysHeld()
+while System.mainLoop {
+	Keys.scan()
+	let held = Keys.held
 
-	if held & KEY_A != 0 { lookupdown -= 1 }
-	if held & KEY_B != 0 { lookupdown += 1 }
-	if held & KEY_LEFT  != 0 { heading += 64; yrot = heading }
-	if held & KEY_RIGHT != 0 { heading -= 64; yrot = heading }
-	if held & KEY_DOWN != 0 {
-		xpos += Int32(sinLerp(Int16(truncatingIfNeeded: heading))) / 20
-		zpos += Int32(cosLerp(Int16(truncatingIfNeeded: heading))) / 20
+	if held.contains(.a) { lookupdown -= 1 }
+	if held.contains(.b) { lookupdown += 1 }
+	if held.contains(.left)  { heading += 64; yrot = heading }
+	if held.contains(.right) { heading -= 64; yrot = heading }
+	if held.contains(.down) {
+		xpos += Int32(Math.sin(Int16(truncatingIfNeeded: heading))) / 20
+		zpos += Int32(Math.cos(Int16(truncatingIfNeeded: heading))) / 20
 		walkbiasangle += 640
-		walkbias = Int32(sinLerp(Int16(truncatingIfNeeded: walkbiasangle))) / 20
+		walkbias = Int32(Math.sin(Int16(truncatingIfNeeded: walkbiasangle))) / 20
 	}
-	if held & KEY_UP != 0 {
-		xpos -= Int32(sinLerp(Int16(truncatingIfNeeded: heading))) / 20
-		zpos -= Int32(cosLerp(Int16(truncatingIfNeeded: heading))) / 20
+	if held.contains(.up) {
+		xpos -= Int32(Math.sin(Int16(truncatingIfNeeded: heading))) / 20
+		zpos -= Int32(Math.cos(Int16(truncatingIfNeeded: heading))) / 20
 		walkbiasangle -= 640
-		walkbias = Int32(sinLerp(Int16(truncatingIfNeeded: walkbiasangle))) / 20
+		walkbias = Int32(Math.sin(Int16(truncatingIfNeeded: walkbiasangle))) / 20
 	}
 
 	drawGLScene()
-	glFlush(0)
-	threadWaitForVBlank()
+	GL.flush()
+	System.waitForVBlank()
 
-	if held & KEY_START != 0 { break }
+	if held.contains(.start) { break }
 }

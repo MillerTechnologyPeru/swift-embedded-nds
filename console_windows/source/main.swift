@@ -7,7 +7,7 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 let border =
 	"------------" +
@@ -20,34 +20,34 @@ let border =
 var touch = touchPosition()
 
 // consoleDemoInit returns a pointer to the demo console; copy it for the second.
-let left = consoleDemoInit()!
+let left = Console.demoInit()!
 var right = left.pointee
 
-consoleSetWindow(left, 15, 1, 12, 16)
-consoleSetWindow(&right, 1, 1, 12, 16)
+Console.setWindow(left, x: 15, y: 1, width: 12, height: 16)
+Console.setWindow(&right, x: 1, y: 1, width: 12, height: 16)
 
-consoleSelect(left)
-nds_puts(border)
-consoleSelect(&right)
-nds_puts(border)
+Console.select(left)
+Console.print(border)
+Console.select(&right)
+Console.print(border)
 
-consoleSetWindow(left, 2, 2, 10, 14)
-consoleSetWindow(&right, 16, 2, 10, 14)
+Console.setWindow(left, x: 2, y: 2, width: 10, height: 14)
+Console.setWindow(&right, x: 16, y: 2, width: 10, height: 14)
 
-while pmMainLoop() {
-	scanKeys()
+while System.mainLoop {
+	Keys.scan()
 
-	if keysHeld() & KEY_START != 0 { break }
+	if Keys.held.contains(.start) { break }
 
-	if touchRead(&touch) {
+	if Touch.read(into: &touch) {
 		if touch.px < 128 {
-			consoleSelect(left)
+			Console.select(left)
 		} else {
-			consoleSelect(&right)
+			Console.select(&right)
 		}
 
-		nds_printf_1i("\nT: %i", Int32(touch.px))
+		Console.printf("\nT: %i", Int32(touch.px))
 	}
 
-	threadWaitForVBlank()
+	System.waitForVBlank()
 }

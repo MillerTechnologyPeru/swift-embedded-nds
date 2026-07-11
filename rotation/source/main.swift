@@ -7,18 +7,18 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
-videoSetMode(MODE_5_2D.rawValue)
+Video.setMode(.mode5_2D)
 
-vramSetBankA(VRAM_A_MAIN_BG)
+Video.setBankA(VRAM_A_MAIN_BG)
 
-consoleDemoInit()
+Console.demoInit()
 
-let bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0)
+let bg3 = Background.main(layer: 3, kind: .bmp8, size: BgSize_B8_256x256, mapBase: 0, tileBase: 0)
 
-dmaCopy(nds_asset_drunkenlogo_bin(), bgGetGfxPtr(bg3), 256 * 256)
-dmaCopy(nds_asset_palette_bin(), nds_bg_palette(), 256 * 2)
+DMA.copy(from: nds_asset_drunkenlogo_bin(), to: bg3.gfxPointer!, size: 256 * 256)
+DMA.copy(from: nds_asset_palette_bin(), to: Background.palette!, size: 256 * 2)
 
 var angle: Int16 = 0
 
@@ -34,41 +34,41 @@ var scaleY: Int16 = 1 << 8
 var rcX: Int16 = 128
 var rcY: Int16 = 96
 
-while pmMainLoop() {
-	nds_puts("\n\n\tHello DS devers\n")
-	nds_puts("\twww.drunkencoders.com\n")
-	nds_puts("\tBG Rotation demo\n")
+while System.mainLoop {
+	Console.print("\n\n\tHello DS devers\n")
+	Console.print("\twww.drunkencoders.com\n")
+	Console.print("\tBG Rotation demo\n")
 
-	nds_printf_2i("Angle %3d(actual) %3d(degrees)\n", Int32(angle), (Int32(angle) * 360) / (1 << 15))
-	nds_printf_2i("Scroll  X: %4d Y: %4d\n", Int32(scrollX), Int32(scrollY))
-	nds_printf_2i("Rot center X: %4d Y: %4d\n", Int32(rcX), Int32(rcY))
-	nds_printf_2i("Scale X: %4d Y: %4d\n", Int32(scaleX), Int32(scaleY))
+	Console.printf("Angle %3d(actual) %3d(degrees)\n", Int32(angle), (Int32(angle) * 360) / (1 << 15))
+	Console.printf("Scroll  X: %4d Y: %4d\n", Int32(scrollX), Int32(scrollY))
+	Console.printf("Rot center X: %4d Y: %4d\n", Int32(rcX), Int32(rcY))
+	Console.printf("Scale X: %4d Y: %4d\n", Int32(scaleX), Int32(scaleY))
 
-	scanKeys()
-	let keys = keysHeld()
+	Keys.scan()
+	let keys = Keys.held
 
-	if keys & KEY_L != 0 { angle &+= 20 }
-	if keys & KEY_R != 0 { angle &-= 20 }
-	if keys & KEY_LEFT != 0 { scrollX += 1 }
-	if keys & KEY_RIGHT != 0 { scrollX -= 1 }
-	if keys & KEY_UP != 0 { scrollY += 1 }
-	if keys & KEY_DOWN != 0 { scrollY -= 1 }
-	if keys & KEY_A != 0 { scaleX += 1 }
-	if keys & KEY_B != 0 { scaleX -= 1 }
-	if keys & KEY_START != 0 { rcX += 1 }
-	if keys & KEY_SELECT != 0 { rcY += 1 }
-	if keys & KEY_X != 0 { scaleY += 1 }
-	if keys & KEY_Y != 0 { scaleY -= 1 }
+	if keys.contains(.l) { angle &+= 20 }
+	if keys.contains(.r) { angle &-= 20 }
+	if keys.contains(.left) { scrollX += 1 }
+	if keys.contains(.right) { scrollX -= 1 }
+	if keys.contains(.up) { scrollY += 1 }
+	if keys.contains(.down) { scrollY -= 1 }
+	if keys.contains(.a) { scaleX += 1 }
+	if keys.contains(.b) { scaleX -= 1 }
+	if keys.contains(.start) { rcX += 1 }
+	if keys.contains(.select) { rcY += 1 }
+	if keys.contains(.x) { scaleY += 1 }
+	if keys.contains(.y) { scaleY -= 1 }
 
-	threadWaitForVBlank()
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+	System.waitForVBlank()
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 
-	bgSetCenter(bg3, Int32(rcX), Int32(rcY))
-	bgSetRotateScale(bg3, Int32(angle), Int32(scaleX), Int32(scaleY))
-	bgSetScroll(bg3, Int32(scrollX), Int32(scrollY))
-	bgUpdate()
+	bg3.setCenter(x: Int32(rcX), y: Int32(rcY))
+	bg3.setRotateScale(angle: Int32(angle), sx: Int32(scaleX), sy: Int32(scaleY))
+	bg3.setScroll(x: Int32(scrollX), y: Int32(scrollY))
+	Background.update()
 
 	// clear the console screen (ansi escape sequence)
-	nds_puts("\u{1b}[2J")
+	Console.print("\u{1b}[2J")
 }

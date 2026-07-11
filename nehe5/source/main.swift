@@ -6,77 +6,77 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 var rtri: Float = 0
 var rquad: Float = 0
 
 func drawGLScene() {
 	// --- pyramid ---
-	glLoadIdentity()
-	glTranslatef(-1.5, 0.0, -6.0)
-	glRotatef(rtri, 0.0, 1.0, 0.0)
-	glBegin(GL_TRIANGLES)
-		glColor3f(1, 0, 0); glVertex3f(0, 1, 0)      // front
-		glColor3f(0, 1, 0); glVertex3f(-1, -1, 1)
-		glColor3f(0, 0, 1); glVertex3f(1, -1, 1)
-		glColor3f(1, 0, 0); glVertex3f(0, 1, 0)      // right
-		glColor3f(0, 0, 1); glVertex3f(1, -1, 1)
-		glColor3f(0, 1, 0); glVertex3f(1, -1, -1)
-		glColor3f(1, 0, 0); glVertex3f(0, 1, 0)      // back
-		glColor3f(0, 1, 0); glVertex3f(1, -1, -1)
-		glColor3f(0, 0, 1); glVertex3f(-1, -1, -1)
-		glColor3f(1, 0, 0); glVertex3f(0, 1, 0)      // left
-		glColor3f(0, 0, 1); glVertex3f(-1, -1, -1)
-		glColor3f(0, 1, 0); glVertex3f(-1, -1, 1)
-	glEnd()
+	GL.loadIdentity()
+	GL.translate(-1.5, 0.0, -6.0)
+	GL.rotate(rtri, 0.0, 1.0, 0.0)
+	GL.begin(.triangles)
+		GL.color(1, 0, 0); GL.vertex(0.0, 1.0, 0.0)      // front
+		GL.color(0, 1, 0); GL.vertex(-1.0, -1.0, 1.0)
+		GL.color(0, 0, 1); GL.vertex(1.0, -1.0, 1.0)
+		GL.color(1, 0, 0); GL.vertex(0.0, 1.0, 0.0)      // right
+		GL.color(0, 0, 1); GL.vertex(1.0, -1.0, 1.0)
+		GL.color(0, 1, 0); GL.vertex(1.0, -1.0, -1.0)
+		GL.color(1, 0, 0); GL.vertex(0.0, 1.0, 0.0)      // back
+		GL.color(0, 1, 0); GL.vertex(1.0, -1.0, -1.0)
+		GL.color(0, 0, 1); GL.vertex(-1.0, -1.0, -1.0)
+		GL.color(1, 0, 0); GL.vertex(0.0, 1.0, 0.0)      // left
+		GL.color(0, 0, 1); GL.vertex(-1.0, -1.0, -1.0)
+		GL.color(0, 1, 0); GL.vertex(-1.0, -1.0, 1.0)
+	GL.end()
 
 	// --- cube ---
-	glLoadIdentity()
-	glTranslatef(1.5, 0.0, -7.0)
-	glRotatef(rquad, 1.0, 1.0, 1.0)
-	glBegin(GL_QUADS)
-		glColor3f(0, 1, 0)                            // top
-		glVertex3f(1, 1, -1); glVertex3f(-1, 1, -1); glVertex3f(-1, 1, 1); glVertex3f(1, 1, 1)
-		glColor3f(1, 0.5, 0)                          // bottom
-		glVertex3f(1, -1, 1); glVertex3f(-1, -1, 1); glVertex3f(-1, -1, -1); glVertex3f(1, -1, -1)
-		glColor3f(1, 0, 0)                            // front
-		glVertex3f(1, 1, 1); glVertex3f(-1, 1, 1); glVertex3f(-1, -1, 1); glVertex3f(1, -1, 1)
-		glColor3f(1, 1, 0)                            // back
-		glVertex3f(1, -1, -1); glVertex3f(-1, -1, -1); glVertex3f(-1, 1, -1); glVertex3f(1, 1, -1)
-		glColor3f(0, 0, 1)                            // left
-		glVertex3f(-1, 1, 1); glVertex3f(-1, 1, -1); glVertex3f(-1, -1, -1); glVertex3f(-1, -1, 1)
-		glColor3f(1, 0, 1)                            // right
-		glVertex3f(1, 1, -1); glVertex3f(1, 1, 1); glVertex3f(1, -1, 1); glVertex3f(1, -1, -1)
-	glEnd()
+	GL.loadIdentity()
+	GL.translate(1.5, 0.0, -7.0)
+	GL.rotate(rquad, 1.0, 1.0, 1.0)
+	GL.begin(.quads)
+		GL.color(0, 1, 0)                            // top
+		GL.vertex(1.0, 1.0, -1.0); GL.vertex(-1.0, 1.0, -1.0); GL.vertex(-1.0, 1.0, 1.0); GL.vertex(1.0, 1.0, 1.0)
+		GL.color(1, 0.5, 0)                          // bottom
+		GL.vertex(1.0, -1.0, 1.0); GL.vertex(-1.0, -1.0, 1.0); GL.vertex(-1.0, -1.0, -1.0); GL.vertex(1.0, -1.0, -1.0)
+		GL.color(1, 0, 0)                            // front
+		GL.vertex(1.0, 1.0, 1.0); GL.vertex(-1.0, 1.0, 1.0); GL.vertex(-1.0, -1.0, 1.0); GL.vertex(1.0, -1.0, 1.0)
+		GL.color(1, 1, 0)                            // back
+		GL.vertex(1.0, -1.0, -1.0); GL.vertex(-1.0, -1.0, -1.0); GL.vertex(-1.0, 1.0, -1.0); GL.vertex(1.0, 1.0, -1.0)
+		GL.color(0, 0, 1)                            // left
+		GL.vertex(-1.0, 1.0, 1.0); GL.vertex(-1.0, 1.0, -1.0); GL.vertex(-1.0, -1.0, -1.0); GL.vertex(-1.0, -1.0, 1.0)
+		GL.color(1, 0, 1)                            // right
+		GL.vertex(1.0, 1.0, -1.0); GL.vertex(1.0, 1.0, 1.0); GL.vertex(1.0, -1.0, 1.0); GL.vertex(1.0, -1.0, -1.0)
+	GL.end()
 
 	rtri += 0.2
 	rquad -= 0.15
 }
 
-videoSetMode(MODE_0_3D.rawValue)
-glInit()
-glEnable(Int32(GL_ANTIALIAS.rawValue))
+Video.setMode(.mode0_3D)
+GL.initialize()
+GL.enable(Int32(GL_ANTIALIAS.rawValue))
 
-glClearColor(0, 0, 0, 31)
-glClearPolyID(63)
-glClearDepth(0x7FFF)
+GL.clearColor(r: 0, g: 0, b: 0, a: 31)
+GL.clearPolyID(63)
+GL.clearDepth(0x7FFF)
 
-glViewport(0, 0, 255, 191)
+GL.viewport(0, 0, 255, 191)
 
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-gluPerspective(70, 256.0 / 192.0, 0.1, 100)
+GL.matrixMode(.projection)
+GL.loadIdentity()
+GL.perspective(fovy: 70, aspect: 256.0 / 192.0, near: 0.1, far: 100)
 
-glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
+GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
 
-while pmMainLoop() {
-	glMatrixMode(GL_MODELVIEW)
-	glPushMatrix()
+while System.mainLoop {
+	GL.matrixMode(.modelview)
+	GL.pushMatrix()
 	drawGLScene()
-	glPopMatrix(1)
-	glFlush(0)
-	threadWaitForVBlank()
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+	GL.popMatrix()
+	GL.flush()
+	System.waitForVBlank()
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 }

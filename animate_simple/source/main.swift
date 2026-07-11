@@ -8,7 +8,7 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 let FRAMES_PER_ANIMATION: Int32 = 3
 let W_UP: Int32 = 0, W_RIGHT: Int32 = 1, W_DOWN: Int32 = 2, W_LEFT: Int32 = 3
@@ -30,21 +30,21 @@ struct Woman {
 }
 
 func initMan(_ s: inout Man, _ gfx: UnsafePointer<UInt8>) {
-	s.spriteGfxMem = oamAllocateGfx(&oamMain, SpriteSize_32x32, SpriteColorFormat_256Color)
+	s.spriteGfxMem = OAM.main.allocateGfx(size: SpriteSize_32x32, format: .color256)
 	s.frameGfx = gfx
 }
 
 func animateMan(_ s: inout Man) {
 	let frame = s.animFrame + s.state * FRAMES_PER_ANIMATION
 	let offset = s.frameGfx! + Int(frame) * 32 * 32
-	dmaCopy(offset, s.spriteGfxMem, 32 * 32)
+	DMA.copy(from: offset, to: s.spriteGfxMem!, size: 32 * 32)
 }
 
 func initWoman(_ s: inout Woman, _ gfx: UnsafePointer<UInt8>) {
 	var p = gfx
 	for i in 0 ..< 12 {
-		s.spriteGfxMem[i] = oamAllocateGfx(&oamSub, SpriteSize_32x32, SpriteColorFormat_256Color)
-		dmaCopy(p, s.spriteGfxMem[i], 32 * 32)
+		s.spriteGfxMem[i] = OAM.sub.allocateGfx(size: SpriteSize_32x32, format: .color256)
+		DMA.copy(from: p, to: s.spriteGfxMem[i]!, size: 32 * 32)
 		p += 32 * 32
 	}
 }
@@ -56,40 +56,40 @@ func animateWoman(_ s: inout Woman) {
 var man = Man()
 var woman = Woman()
 
-videoSetMode(MODE_0_2D.rawValue)
-videoSetModeSub(MODE_0_2D.rawValue)
-vramSetBankA(VRAM_A_MAIN_SPRITE)
-vramSetBankD(VRAM_D_SUB_SPRITE)
-oamInit(&oamMain, SpriteMapping_1D_128, false)
-oamInit(&oamSub, SpriteMapping_1D_128, false)
+Video.setMode(.mode0_2D)
+Video.setModeSub(.mode0_2D)
+Video.setBankA(VRAM_A_MAIN_SPRITE)
+Video.setBankD(VRAM_D_SUB_SPRITE)
+OAM.main.initialize(mapping: SpriteMapping_1D_128)
+OAM.sub.initialize(mapping: SpriteMapping_1D_128)
 
 initMan(&man, nds_asset_manTiles()!.assumingMemoryBound(to: UInt8.self))
 initWoman(&woman, nds_asset_womanTiles()!.assumingMemoryBound(to: UInt8.self))
-dmaCopy(nds_asset_manPal(), nds_sprite_palette(), 512)
-dmaCopy(nds_asset_womanPal(), nds_sprite_palette_sub(), 512)
+DMA.copy(from: nds_asset_manPal(), to: OAM.mainPalette!, size: 512)
+DMA.copy(from: nds_asset_womanPal(), to: OAM.subPalette!, size: 512)
 
-while pmMainLoop() {
-	scanKeys()
-	let keys = keysHeld()
-	if keys & KEY_START != 0 { break }
+while System.mainLoop {
+	Keys.scan()
+	let keys = Keys.held
+	if keys.contains(.start) { break }
 
-	if keys != 0 {
-		if keys & KEY_UP != 0 {
+	if !keys.isEmpty {
+		if keys.contains(.up) {
 			if man.y >= 0 { man.y -= 1 }
 			if woman.y >= 0 { woman.y -= 1 }
 			man.state = W_UP; woman.state = W_UP
 		}
-		if keys & KEY_LEFT != 0 {
+		if keys.contains(.left) {
 			if man.x >= 0 { man.x -= 1 }
 			if woman.x >= 0 { woman.x -= 1 }
 			man.state = W_LEFT; woman.state = W_LEFT
 		}
-		if keys & KEY_RIGHT != 0 {
+		if keys.contains(.right) {
 			if man.x <= 256 { man.x += 1 }
 			if woman.x <= 256 { woman.x += 1 }
 			man.state = W_RIGHT; woman.state = W_RIGHT
 		}
-		if keys & KEY_DOWN != 0 {
+		if keys.contains(.down) {
 			if man.y <= 192 { man.y += 1 }
 			if woman.y <= 192 { woman.y += 1 }
 			man.state = W_DOWN; woman.state = W_DOWN
@@ -103,12 +103,12 @@ while pmMainLoop() {
 	animateMan(&man)
 	animateWoman(&woman)
 
-	oamSet(&oamMain, 0, man.x, man.y, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color,
-	       man.spriteGfxMem, -1, false, false, false, false, false)
-	oamSet(&oamSub, 0, woman.x, woman.y, 0, 0, SpriteSize_32x32, SpriteColorFormat_256Color,
-	       woman.spriteGfxMem[woman.gfxFrame], -1, false, false, false, false, false)
+	OAM.main.set(id: 0, x: man.x, y: man.y, priority: 0, paletteAlpha: 0,
+	             size: SpriteSize_32x32, format: .color256, gfx: man.spriteGfxMem)
+	OAM.sub.set(id: 0, x: woman.x, y: woman.y, priority: 0, paletteAlpha: 0,
+	            size: SpriteSize_32x32, format: .color256, gfx: woman.spriteGfxMem[woman.gfxFrame])
 
-	threadWaitForVBlank()
-	oamUpdate(&oamMain)
-	oamUpdate(&oamSub)
+	System.waitForVBlank()
+	OAM.main.update()
+	OAM.sub.update()
 }

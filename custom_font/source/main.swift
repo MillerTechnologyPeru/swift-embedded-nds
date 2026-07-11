@@ -6,15 +6,16 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 let tileBase: Int32 = 0
 let mapBase: Int32 = 20
 
-videoSetModeSub(MODE_0_2D.rawValue)
-vramSetBankC(VRAM_C_SUB_BG)
+Video.setModeSub(.mode0_2D)
+Video.setBankC(VRAM_C_SUB_BG)
 
-let console = consoleInit(nil, 0, BgType_Text4bpp, BgSize_T_256x256, mapBase, tileBase, false, false)
+let console = Console.initialize(nil, layer: 0, kind: .text4bpp, size: BgSize_T_256x256,
+                                 mapBase: mapBase, tileBase: tileBase, mainDisplay: false, loadGraphics: false)
 
 // Point the font at the real linked grit symbols via the generated stable-
 // pointer accessors (a plain `fontTiles` reference would import as a tuple copy,
@@ -28,16 +29,16 @@ font.bpp = 4
 font.asciiOffset = 32
 font.convertSingleColor = false
 
-consoleSetFont(console, &font)
+Console.setFont(console, &font)
 
-nds_puts("Custom Font Demo\n")
-nds_puts("   by Poffy\n")
-nds_puts("modified by WinterMute\n")
-nds_puts("for libnds examples\n")
+Console.print("Custom Font Demo\n")
+Console.print("   by Poffy\n")
+Console.print("modified by WinterMute\n")
+Console.print("for libnds examples\n")
 
-while pmMainLoop() {
-	threadWaitForVBlank()
-	scanKeys()
+while System.mainLoop {
+	System.waitForVBlank()
+	Keys.scan()
 
-	if keysDown() & KEY_START != 0 { break }
+	if Keys.down.contains(.start) { break }
 }

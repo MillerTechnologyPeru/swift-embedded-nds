@@ -6,43 +6,43 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 func drawGLScene() {
 	// this is where the magic happens
-	glLoadIdentity()
+	GL.loadIdentity()
 }
 
 // Setup the main screen for 3D
-videoSetMode(MODE_0_3D.rawValue)
+Video.setMode(.mode0_3D)
 
-glInit()
-glEnable(Int32(GL_ANTIALIAS.rawValue))
+GL.initialize()
+GL.enable(Int32(GL_ANTIALIAS.rawValue))
 
-glClearColor(0, 0, 0, 31)
-glClearPolyID(63)
-glClearDepth(0x7FFF)
+GL.clearColor(r: 0, g: 0, b: 0, a: 31)
+GL.clearPolyID(63)
+GL.clearDepth(0x7FFF)
 
-glViewport(0, 0, 255, 191)
+GL.viewport(0, 0, 255, 191)
 
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-gluPerspective(70, 256.0 / 192.0, 0.1, 100)
+GL.matrixMode(.projection)
+GL.loadIdentity()
+GL.perspective(fovy: 70, aspect: 256.0 / 192.0, near: 0.1, far: 100)
 
-glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
+GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
 
-while pmMainLoop() {
-	glMatrixMode(GL_MODELVIEW)
+while System.mainLoop {
+	GL.matrixMode(.modelview)
 
-	glColor3f(1, 1, 1)   // DS GL default colour is black, so set white
+	GL.color(1, 1, 1)   // DS GL default colour is black, so set white
 
-	glPushMatrix()
+	GL.pushMatrix()
 	drawGLScene()
-	glPopMatrix(1)
+	GL.popMatrix()
 
-	threadWaitForVBlank()
-	glFlush(0)
+	System.waitForVBlank()
+	GL.flush()
 
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 }

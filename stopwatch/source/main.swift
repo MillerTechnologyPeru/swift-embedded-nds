@@ -6,57 +6,57 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 enum TimerState {
 	case stop, pause, running
 }
 
-consoleDemoInit()
+Console.demoInit()
 
-// the speed of the timer when using ClockDivider_1024
-let timerSpeed = nds_bus_clock() / 1024
+// the speed of the timer when using .div1024
+let timerSpeed = Timer.busClock / 1024
 
 var ticks: UInt32 = 0
 var state: TimerState = .stop
 
-while pmMainLoop() {
-	threadWaitForVBlank()
-	consoleClear()
-	scanKeys()
-	let down = keysDown()
+while System.mainLoop {
+	System.waitForVBlank()
+	Console.clear()
+	Keys.scan()
+	let down = Keys.down
 
-	if down & KEY_START != 0 { break }
+	if down.contains(.start) { break }
 
 	if state == .running {
-		ticks += UInt32(timerElapsed(0))
+		ticks += UInt32(Timer.elapsed(0))
 	}
 
-	if down & KEY_A != 0 {
+	if down.contains(.a) {
 		switch state {
 		case .stop:
-			timerStart(0, ClockDivider_1024, 0, nil)
+			Timer.start(0, divider: .div1024, reload: 0)
 			state = .running
 		case .pause:
-			timerUnpause(0)
+			Timer.unpause(0)
 			state = .running
 		case .running:
-			ticks += UInt32(timerPause(0))
+			ticks += UInt32(Timer.pause(0))
 			state = .pause
 		}
-	} else if down & KEY_B != 0 {
-		_ = timerStop(0)
+	} else if down.contains(.b) {
+		Timer.stop(0)
 		ticks = 0
 		state = .stop
 	}
 
-	nds_puts("Press A to start and pause the \ntimer, B to clear the timer \nand start to quit the program.\n\n")
-	nds_printf_1i("ticks:  %u\n", Int32(bitPattern: ticks))
-	nds_printf_2i("second: %u.%03u\n",
-	              Int32(bitPattern: ticks / timerSpeed),
-	              Int32(bitPattern: ((ticks % timerSpeed) * 1000) / timerSpeed))
+	Console.print("Press A to start and pause the \ntimer, B to clear the timer \nand start to quit the program.\n\n")
+	Console.printf("ticks:  %u\n", Int32(bitPattern: ticks))
+	Console.printf("second: %u.%03u\n",
+	               Int32(bitPattern: ticks / timerSpeed),
+	               Int32(bitPattern: ((ticks % timerSpeed) * 1000) / timerSpeed))
 }
 
 if state != .stop {
-	_ = timerStop(0)
+	Timer.stop(0)
 }

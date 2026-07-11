@@ -6,100 +6,88 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
-
-@inline(__always) func rgb15(_ r: UInt16, _ g: UInt16, _ b: UInt16) -> UInt16 {
-	r | (g << 5) | (b << 10)
-}
-@inline(__always) func floattof32(_ n: Float) -> Int32  { Int32(n * Float(1 << 12)) }
-@inline(__always) func floattov16(_ n: Float) -> Int16  { Int16(n * Float(1 << 12)) }
-@inline(__always) func inttot16(_ n: Int32) -> Int16    { Int16(n << 4) }
-@inline(__always) func normalPack(_ x: Int32, _ y: Int32, _ z: Int32) -> UInt32 {
-	UInt32(bitPattern: (x & 0x3FF) | ((y & 0x3FF) << 10) | (z << 20))
-}
+import NDS
 
 var textureID: Int32 = 0
 var rotateX: Float = 0.0
 var rotateY: Float = 0.0
 
-videoSetMode(MODE_0_3D.rawValue)
-glInit()
+Video.setMode(.mode0_3D)
+GL.initialize()
 
-glEnable(Int32(GL_TEXTURE_2D.rawValue))
-glEnable(Int32(GL_ANTIALIAS.rawValue))
+GL.enable(Int32(GL_TEXTURE_2D.rawValue))
+GL.enable(Int32(GL_ANTIALIAS.rawValue))
 
-glClearColor(0, 0, 0, 31)
-glClearPolyID(63)
-glClearDepth(0x7FFF)
+GL.clearColor(r: 0, g: 0, b: 0, a: 31)
+GL.clearPolyID(63)
+GL.clearDepth(0x7FFF)
 
-glViewport(0, 0, 255, 191)
+GL.viewport(0, 0, 255, 191)
 
-vramSetBankA(VRAM_A_TEXTURE)
+Video.setBankA(VRAM_A_TEXTURE)
 
-glGenTextures(1, &textureID)
-glBindTexture(0, textureID)
-glTexImage2D(0, 0, GL_RGB,
-             Int32(TEXTURE_SIZE_128.rawValue), Int32(TEXTURE_SIZE_128.rawValue),
-             0, Int32(TEXGEN_TEXCOORD.rawValue), nds_asset_texture_bin())
+_ = GL.genTextures(1, &textureID)
+GL.bindTexture(0, textureID)
+_ = GL.texImage2D(target: 0, type: GL_RGB,
+                  sizeX: Int32(TEXTURE_SIZE_128.rawValue), sizeY: Int32(TEXTURE_SIZE_128.rawValue),
+                  param: Int32(TEXGEN_TEXCOORD.rawValue), texture: nds_asset_texture_bin())
 
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-gluPerspective(70, 256.0 / 192.0, 0.1, 40)
+GL.matrixMode(.projection)
+GL.loadIdentity()
+GL.perspective(fovy: 70, aspect: 256.0 / 192.0, near: 0.1, far: 40)
 
-gluLookAt(0.0, 0.0, 1.0,
-          0.0, 0.0, 0.0,
-          0.0, 1.0, 0.0)
+GL.lookAt(eye: (0.0, 0.0, 1.0), center: (0.0, 0.0, 0.0), up: (0.0, 1.0, 0.0))
 
-while pmMainLoop() {
-	glMatrixMode(GL_MODELVIEW)
-	glPushMatrix()
+while System.mainLoop {
+	GL.matrixMode(.modelview)
+	GL.pushMatrix()
 
-	glTranslatef32(0, 0, floattof32(-1))
+	GL.translatef32(0, 0, floattof32(-1))
 
-	glRotateX(rotateX)
-	glRotateY(rotateY)
+	GL.rotateX(rotateX)
+	GL.rotateY(rotateY)
 
-	glMaterialf(GL_AMBIENT, rgb15(16, 16, 16))
-	glMaterialf(GL_DIFFUSE, rgb15(16, 16, 16))
-	glMaterialf(GL_SPECULAR, (UInt16(1) << 15) | rgb15(8, 8, 8))
-	glMaterialf(GL_EMISSION, rgb15(16, 16, 16))
+	GL.material(GL_AMBIENT, Color(r: 16, g: 16, b: 16))
+	GL.material(GL_DIFFUSE, Color(r: 16, g: 16, b: 16))
+	GL.material(GL_SPECULAR, Color(rawValue: (UInt16(1) << 15) | Color(r: 8, g: 8, b: 8).rawValue))
+	GL.material(GL_EMISSION, Color(r: 16, g: 16, b: 16))
 
 	// the DS uses a table for shininess; this generates a rough one
-	glMaterialShinyness()
+	GL.materialShininess()
 
-	glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_BACK.rawValue))
+	GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_BACK.rawValue))
 
-	scanKeys()
-	let keys = keysHeld()
+	Keys.scan()
+	let keys = Keys.held
 
-	if keys & KEY_UP != 0    { rotateX += 3 }
-	if keys & KEY_DOWN != 0  { rotateX -= 3 }
-	if keys & KEY_LEFT != 0  { rotateY += 3 }
-	if keys & KEY_RIGHT != 0 { rotateY -= 3 }
+	if keys.contains(.up)    { rotateX += 3 }
+	if keys.contains(.down)  { rotateX -= 3 }
+	if keys.contains(.left)  { rotateY += 3 }
+	if keys.contains(.right) { rotateY -= 3 }
 
-	glBindTexture(0, textureID)
+	GL.bindTexture(0, textureID)
 
-	glBegin(GL_QUAD)
-		glNormal(normalPack(0, -512, 0))   // inttov10(-1) == -1 << 9
+	GL.begin(.quads)
+		GL.normal(NORMAL_PACK(0, -512, 0))   // inttov10(-1) == -1 << 9
 
-		glTexCoord2t16(0, inttot16(128))
-		glVertex3v16(floattov16(-0.5), floattov16(-0.5), 0)
+		GL.texCoord16(0, inttot16(128))
+		GL.vertex16(floattov16(-0.5), floattov16(-0.5), 0)
 
-		glTexCoord2t16(inttot16(128), inttot16(128))
-		glVertex3v16(floattov16(0.5), floattov16(-0.5), 0)
+		GL.texCoord16(inttot16(128), inttot16(128))
+		GL.vertex16(floattov16(0.5), floattov16(-0.5), 0)
 
-		glTexCoord2t16(inttot16(128), 0)
-		glVertex3v16(floattov16(0.5), floattov16(0.5), 0)
+		GL.texCoord16(inttot16(128), 0)
+		GL.vertex16(floattov16(0.5), floattov16(0.5), 0)
 
-		glTexCoord2t16(0, 0)
-		glVertex3v16(floattov16(-0.5), floattov16(0.5), 0)
-	glEnd()
+		GL.texCoord16(0, 0)
+		GL.vertex16(floattov16(-0.5), floattov16(0.5), 0)
+	GL.end()
 
-	glPopMatrix(1)
+	GL.popMatrix()
 
-	glFlush(0)
+	GL.flush()
 
-	threadWaitForVBlank()
+	System.waitForVBlank()
 
-	if keys & KEY_START != 0 { break }
+	if keys.contains(.start) { break }
 }

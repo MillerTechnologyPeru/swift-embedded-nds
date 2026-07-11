@@ -7,25 +7,18 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
-
-@inline(__always) func rgb15(_ r: UInt16, _ g: UInt16, _ b: UInt16) -> UInt16 {
-	r | (g << 5) | (b << 10)
-}
-@inline(__always) func floattov10(_ n: Float) -> Int16 {
-	n > 0.998 ? 0x1FF : Int16(n * Float(1 << 9))
-}
+import NDS
 
 // State for the stylus-drag rotation (the original used function-static locals).
 var prevPenX: Int32 = 0x7FFFFFFF
 var prevPenY: Int32 = 0x7FFFFFFF
 
 func getPenDelta() -> (Int32, Int32) {
-	let keys = keysHeld()
+	let keys = Keys.held
 	var touchXY = touchPosition()
 
-	if keys & KEY_TOUCH != 0 {
-		touchRead(&touchXY)
+	if keys.contains(.touch) {
+		_ = Touch.read(into: &touchXY)
 		var dx: Int32 = 0
 		var dy: Int32 = 0
 		if prevPenX != 0x7FFFFFFF {
@@ -42,75 +35,71 @@ func getPenDelta() -> (Int32, Int32) {
 	}
 }
 
-let KEY_TOUCH: UInt32 = 1 << 14
-
 var rotateX: Int32 = 0
 var rotateY: Int32 = 0
 
-videoSetMode(MODE_0_3D.rawValue)
-glInit()
-glEnable(Int32(GL_ANTIALIAS.rawValue))
+Video.setMode(.mode0_3D)
+GL.initialize()
+GL.enable(Int32(GL_ANTIALIAS.rawValue))
 
-glClearColor(0, 0, 0, 31)
-glClearPolyID(63)
-glClearDepth(0x7FFF)
+GL.clearColor(r: 0, g: 0, b: 0, a: 31)
+GL.clearPolyID(63)
+GL.clearDepth(0x7FFF)
 
-glViewport(0, 0, 255, 191)
+GL.viewport(0, 0, 255, 191)
 
 // toon-table entry 0 is fully unlit up to 31 fully lit; two block-fills give a
 // cartoony 2-tone look.
-glSetToonTableRange(0, 15, rgb15(8, 8, 8))
-glSetToonTableRange(16, 31, rgb15(24, 24, 24))
+GL.setToonTableRange(start: 0, end: 15, color: Color(r: 8, g: 8, b: 8))
+GL.setToonTableRange(start: 16, end: 31, color: Color(r: 24, g: 24, b: 24))
 
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-gluPerspective(70, 256.0 / 192.0, 0.1, 40)
+GL.matrixMode(.projection)
+GL.loadIdentity()
+GL.perspective(fovy: 70, aspect: 256.0 / 192.0, near: 0.1, far: 40)
 
 // When toon shading, the hw ignores lights 2 and 3, and uses the RED component
 // of the lit vertex to index the toon table.
-glLight(0, rgb15(16, 16, 16), 0,                floattov10(-1.0), 0)
-glLight(1, rgb15(16, 16, 16), floattov10(-1.0), 0,                0)
+GL.light(0, color: Color(r: 16, g: 16, b: 16), x: 0,                y: floattov10(-1.0), z: 0)
+GL.light(1, color: Color(r: 16, g: 16, b: 16), x: floattov10(-1.0), y: 0,                z: 0)
 
-gluLookAt(0.0, 0.0, -3.0,
-          0.0, 0.0, 0.0,
-          0.0, 1.0, 0.0)
+GL.lookAt(eye: (0.0, 0.0, -3.0), center: (0.0, 0.0, 0.0), up: (0.0, 1.0, 0.0))
 
 let statue = nds_asset_statue_bin()!.assumingMemoryBound(to: UInt32.self)
 
-while pmMainLoop() {
-	glMatrixMode(GL_MODELVIEW)
-	glPushMatrix()
+while System.mainLoop {
+	GL.matrixMode(.modelview)
+	GL.pushMatrix()
 
-	glRotateXi(rotateX)
-	glRotateYi(rotateY)
+	GL.rotateXi(rotateX)
+	GL.rotateYi(rotateY)
 
-	glMaterialf(GL_AMBIENT, rgb15(8, 8, 8))
-	glMaterialf(GL_DIFFUSE, rgb15(24, 24, 24))
-	glMaterialf(GL_SPECULAR, rgb15(0, 0, 0))
-	glMaterialf(GL_EMISSION, rgb15(0, 0, 0))
+	GL.material(GL_AMBIENT, Color(r: 8, g: 8, b: 8))
+	GL.material(GL_DIFFUSE, Color(r: 24, g: 24, b: 24))
+	GL.material(GL_SPECULAR, Color(r: 0, g: 0, b: 0))
+	GL.material(GL_EMISSION, Color(r: 0, g: 0, b: 0))
 
-	glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_BACK.rawValue)
-	          | UInt32(POLY_FORMAT_LIGHT0.rawValue) | UInt32(POLY_FORMAT_LIGHT1.rawValue)
-	          | UInt32(POLY_TOON_HIGHLIGHT.rawValue))
+	GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_BACK.rawValue)
+	           | UInt32(POLY_FORMAT_LIGHT0.rawValue) | UInt32(POLY_FORMAT_LIGHT1.rawValue)
+	           | UInt32(POLY_TOON_HIGHLIGHT.rawValue))
 
-	scanKeys()
-	let keys = keysHeld()
+	Keys.scan()
+	let keys = Keys.held
 
-	if keys & KEY_UP != 0 { rotateX += 1 }
-	if keys & KEY_DOWN != 0 { rotateX -= 1 }
-	if keys & KEY_LEFT != 0 { rotateY += 1 }
-	if keys & KEY_RIGHT != 0 { rotateY -= 1 }
+	if keys.contains(.up) { rotateX += 1 }
+	if keys.contains(.down) { rotateX -= 1 }
+	if keys.contains(.left) { rotateY += 1 }
+	if keys.contains(.right) { rotateY -= 1 }
 
 	let (dx, dy) = getPenDelta()
 	rotateY -= dx
 	rotateX -= dy
 
-	glCallList(statue)
-	glPopMatrix(1)
+	GL.callList(statue)
+	GL.popMatrix()
 
-	glFlush(0)
+	GL.flush()
 
-	threadWaitForVBlank()
+	System.waitForVBlank()
 
-	if keys & KEY_START != 0 { break }
+	if keys.contains(.start) { break }
 }

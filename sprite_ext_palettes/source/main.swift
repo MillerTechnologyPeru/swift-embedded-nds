@@ -7,22 +7,18 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
-
-@inline(__always) func rgb15(_ r: UInt16, _ g: UInt16, _ b: UInt16) -> UInt16 {
-	r | (g << 5) | (b << 10)
-}
-let KEY_TOUCH: UInt32 = 1 << 14
+import NDS
 
 var touch = touchPosition()
 
-videoSetMode(MODE_0_2D.rawValue)
-vramSetBankA(VRAM_A_MAIN_SPRITE)
+Video.setMode(.mode0_2D)
+Video.setBankA(VRAM_A_MAIN_SPRITE)
 
-oamInit(&oamMain, SpriteMapping_1D_32, true)   // true = use extended palettes
+let main = OAM.main
+main.initialize(mapping: SpriteMapping_1D_32, extPalette: true)   // use extended palettes
 
-let gfx1 = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color)!
-let gfx2 = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color)!
+let gfx1 = main.allocateGfx(size: SpriteSize_16x16, format: .color256)!
+let gfx2 = main.allocateGfx(size: SpriteSize_16x16, format: .color256)!
 
 // both sprites are filled with colour index 1
 for i in 0 ..< (16 * 16 / 2) {
@@ -32,27 +28,25 @@ for i in 0 ..< (16 * 16 / 2) {
 
 // unlock VRAM F (can't write to it while mapped as palette memory), write the
 // two extended palettes, then map it back as the sprite ext-palette.
-vramSetBankF(VRAM_F_LCD)
-nds_set_ext_spr_palette_f(0, 1, rgb15(31, 0, 0))
-nds_set_ext_spr_palette_f(1, 1, rgb15(0, 31, 0))
-vramSetBankF(VRAM_F_SPRITE_EXT_PALETTE)
+Video.setBankF(VRAM_F_LCD)
+OAM.setExtPaletteF(palette: 0, index: 1, color: Color(r: 31, g: 0, b: 0))
+OAM.setExtPaletteF(palette: 1, index: 1, color: Color(r: 0, g: 31, b: 0))
+Video.setBankF(VRAM_F_SPRITE_EXT_PALETTE)
 
-while pmMainLoop() {
-	scanKeys()
-	let held = keysHeld()
-	if held & KEY_TOUCH != 0 { touchRead(&touch) }
-	if held & KEY_START != 0 { break }
+while System.mainLoop {
+	Keys.scan()
+	let held = Keys.held
+	if held.contains(.touch) { _ = Touch.read(into: &touch) }
+	if held.contains(.start) { break }
 
-	oamSet(&oamMain, 0, Int32(touch.px), Int32(touch.py), 0,
-	       0,   // palette 0
-	       SpriteSize_16x16, SpriteColorFormat_256Color, gfx1,
-	       -1, false, false, false, false, false)
+	main.set(id: 0, x: Int32(touch.px), y: Int32(touch.py), priority: 0,
+	         paletteAlpha: 0,   // palette 0
+	         size: SpriteSize_16x16, format: .color256, gfx: gfx1)
 
-	oamSet(&oamMain, 1, 256 - Int32(touch.px), 192 - Int32(touch.py), 0,
-	       1,   // palette 1
-	       SpriteSize_16x16, SpriteColorFormat_256Color, gfx2,
-	       -1, false, false, false, false, false)
+	main.set(id: 1, x: 256 - Int32(touch.px), y: 192 - Int32(touch.py), priority: 0,
+	         paletteAlpha: 1,   // palette 1
+	         size: SpriteSize_16x16, format: .color256, gfx: gfx2)
 
-	threadWaitForVBlank()
-	oamUpdate(&oamMain)
+	System.waitForVBlank()
+	main.update()
 }

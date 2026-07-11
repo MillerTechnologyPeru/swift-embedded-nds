@@ -7,46 +7,44 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
-@inline(__always) func rgb15(_ r: UInt16, _ g: UInt16, _ b: UInt16) -> UInt16 {
-	r | (g << 5) | (b << 10)
-}
 @inline(__always) func intToFixed(_ n: Int32, _ bits: Int32) -> Int32 { n << bits }
 @inline(__always) func degreesToAngle(_ d: Int32) -> Int32 { d * (1 << 15) / 360 }
 
 var angle: Int32 = 0
 
-videoSetMode(MODE_0_2D.rawValue)
-vramSetBankA(VRAM_A_MAIN_SPRITE)
+Video.setMode(.mode0_2D)
+Video.setBankA(VRAM_A_MAIN_SPRITE)
 
-oamInit(&oamMain, SpriteMapping_1D_32, false)
+let main = OAM.main
+main.initialize(mapping: SpriteMapping_1D_32)
 
-let gfx = oamAllocateGfx(&oamMain, SpriteSize_32x32, SpriteColorFormat_256Color)!
+let gfx = main.allocateGfx(size: SpriteSize_32x32, format: .color256)!
 for i in 0 ..< (32 * 32 / 2) { gfx[i] = 1 | (1 << 8) }
 
-nds_sprite_palette()![1] = rgb15(31, 0, 0)
+OAM.mainPalette![1] = Color(r: 31, g: 0, b: 0).rawValue
 
-while pmMainLoop() {
-	scanKeys()
-	let held = keysHeld()
+while System.mainLoop {
+	Keys.scan()
+	let held = Keys.held
 
-	if held & KEY_START != 0 { break }
-	if held & KEY_LEFT != 0  { angle += degreesToAngle(2) }
-	if held & KEY_RIGHT != 0 { angle -= degreesToAngle(2) }
+	if held.contains(.start) { break }
+	if held.contains(.left)  { angle += degreesToAngle(2) }
+	if held.contains(.right) { angle -= degreesToAngle(2) }
 
-	oamRotateScale(&oamMain, 0, angle, intToFixed(1, 8), intToFixed(1, 8))
+	main.rotateScale(rotId: 0, angle: angle, sx: intToFixed(1, 8), sy: intToFixed(1, 8))
 
 	// size-doubled sprite: offset by half so it rotates about its centre
-	oamSet(&oamMain, 0, 20 - 16, 20 - 16, 0, 0,
-	       SpriteSize_32x32, SpriteColorFormat_256Color, gfx,
-	       0, true, false, false, false, false)
+	main.set(id: 0, x: 20 - 16, y: 20 - 16, priority: 0, paletteAlpha: 0,
+	         size: SpriteSize_32x32, format: .color256, gfx: gfx,
+	         affineIndex: 0, sizeDouble: true)
 
 	// non-doubled sprite: clips at 32x32 as it spins
-	oamSet(&oamMain, 1, 204, 20, 0, 0,
-	       SpriteSize_32x32, SpriteColorFormat_256Color, gfx,
-	       0, false, false, false, false, false)
+	main.set(id: 1, x: 204, y: 20, priority: 0, paletteAlpha: 0,
+	         size: SpriteSize_32x32, format: .color256, gfx: gfx,
+	         affineIndex: 0)
 
-	threadWaitForVBlank()
-	oamUpdate(&oamMain)
+	System.waitForVBlank()
+	main.update()
 }

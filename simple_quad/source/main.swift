@@ -6,78 +6,74 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
-
-// libnds fixed-point conversion macros, reimplemented in Swift.
-@inline(__always) func inttov16(_ n: Int32) -> Int16 { Int16(n << 12) }     // int -> v16
-@inline(__always) func floattof32(_ n: Float) -> Int32 { Int32(n * Float(1 << 12)) } // float -> f32
+import NDS
 
 var rotateX: Float = 0.0
 var rotateY: Float = 0.0
 
 // set mode 0, enable BG0 and set it to 3D
-videoSetMode(MODE_0_3D.rawValue)
+Video.setMode(.mode0_3D)
 
-glInit()
-glEnable(Int32(GL_ANTIALIAS.rawValue))
+GL.initialize()
+GL.enable(Int32(GL_ANTIALIAS.rawValue))
 
-glClearColor(0, 0, 0, 31)
-glClearPolyID(63)
-glClearDepth(0x7FFF)
+GL.clearColor(r: 0, g: 0, b: 0, a: 31)
+GL.clearPolyID(63)
+GL.clearDepth(0x7FFF)
 
-glViewport(0, 0, 255, 191)
+GL.viewport(0, 0, 255, 191)
 
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-gluPerspective(70, 256.0 / 192.0, 0.1, 40)
+GL.matrixMode(.projection)
+GL.loadIdentity()
+GL.perspective(fovy: 70, aspect: 256.0 / 192.0, near: 0.1, far: 40)
 
-gluLookAt(0.0, 0.0, 1.0,
-          0.0, 0.0, 0.0,
-          0.0, 1.0, 0.0)
+GL.lookAt(eye:    (0.0, 0.0, 1.0),
+          center: (0.0, 0.0, 0.0),
+          up:     (0.0, 1.0, 0.0))
 
-while pmMainLoop() {
-	glPushMatrix()
+while System.mainLoop {
+	GL.pushMatrix()
 
-	glTranslatef32(0, 0, floattof32(-1))
+	GL.translatef32(0, 0, floattof32(-1))
 
-	glRotateX(rotateX)
-	glRotateY(rotateY)
+	GL.rotateX(rotateX)
+	GL.rotateY(rotateY)
 
-	glMatrixMode(GL_MODELVIEW)
+	GL.matrixMode(.modelview)
 
-	glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
+	GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
 
-	scanKeys()
+	Keys.scan()
 
-	let keys = keysHeld()
+	let keys = Keys.held
 
-	if keys & KEY_UP != 0    { rotateX += 3 }
-	if keys & KEY_DOWN != 0  { rotateX -= 3 }
-	if keys & KEY_LEFT != 0  { rotateY += 3 }
-	if keys & KEY_RIGHT != 0 { rotateY -= 3 }
+	if keys.contains(.up)    { rotateX += 3 }
+	if keys.contains(.down)  { rotateX -= 3 }
+	if keys.contains(.left)  { rotateY += 3 }
+	if keys.contains(.right) { rotateY -= 3 }
 
 	// draw the quad
-	glBegin(GL_QUAD)
+	GL.begin(.quads)
 
-		glColor3b(255, 0, 0)
-		glVertex3v16(inttov16(-1), inttov16(-1), 0)
+		GL.color(r: 255, g: 0, b: 0)
+		GL.vertex16(inttov16(-1), inttov16(-1), 0)
 
-		glColor3b(0, 255, 0)
-		glVertex3v16(inttov16(1), inttov16(-1), 0)
+		GL.color(r: 0, g: 255, b: 0)
+		GL.vertex16(inttov16(1), inttov16(-1), 0)
 
-		glColor3b(0, 0, 255)
-		glVertex3v16(inttov16(1), inttov16(1), 0)
+		GL.color(r: 0, g: 0, b: 255)
+		GL.vertex16(inttov16(1), inttov16(1), 0)
 
-		glColor3b(255, 0, 255)
-		glVertex3v16(inttov16(-1), inttov16(1), 0)
+		GL.color(r: 255, g: 0, b: 255)
+		GL.vertex16(inttov16(-1), inttov16(1), 0)
 
-	glEnd()
+	GL.end()
 
-	glPopMatrix(1)
+	GL.popMatrix()
 
-	glFlush(0)
+	GL.flush()
 
-	threadWaitForVBlank()
+	System.waitForVBlank()
 
-	if keys & KEY_START != 0 { break }
+	if keys.contains(.start) { break }
 }

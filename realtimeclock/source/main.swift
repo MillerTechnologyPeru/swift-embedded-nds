@@ -11,7 +11,7 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 let months = ["January", "February", "March", "April", "May", "June",
               "July", "August", "September", "October", "November", "December"]
@@ -40,85 +40,82 @@ func getDayOfWeek(_ dayIn: Int, _ month: Int, _ yearIn: Int) -> Int {
 // 3D watch face
 //---------------------------------------------------------------------------------
 func drawQuad(_ x: Float, _ y: Float, _ width: Float, _ height: Float) {
-	glBegin(GL_QUADS)
-	glVertex3f(x - width / 2, y,          0)
-	glVertex3f(x + width / 2, y,          0)
-	glVertex3f(x + width / 2, y + height, 0)
-	glVertex3f(x - width / 2, y + height, 0)
-	glEnd()
+	GL.begin(.quads)
+	GL.vertex(x - width / 2, y,          0)
+	GL.vertex(x + width / 2, y,          0)
+	GL.vertex(x + width / 2, y + height, 0)
+	GL.vertex(x - width / 2, y + height, 0)
+	GL.end()
 }
 
 func init3D() {
-	lcdMainOnTop()
-	videoSetMode(MODE_0_3D.rawValue)
-	glInit()
-	glViewport(0, 0, 255, 191)
-	glClearColor(0, 0, 0, 31)
-	glClearDepth(0x7FFF)
-	glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
+	System.lcdMainOnTop()
+	Video.setMode(.mode0_3D)
+	GL.initialize()
+	GL.viewport(0, 0, 255, 191)
+	GL.clearColor(r: 0, g: 0, b: 0, a: 31)
+	GL.clearDepth(0x7FFF)
+	GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
 
-	glMatrixMode(GL_MODELVIEW)
-	glLoadIdentity()
-	glMatrixMode(GL_PROJECTION)
-	glLoadIdentity()
-	gluPerspective(70, 256.0 / 192.0, 0.1, 100)
-	gluLookAt(0.0, 0.0, 3.0,   // camera
-	          0.0, 0.0, 0.0,   // look at
-	          0.0, 1.0, 0.0)   // up
+	GL.matrixMode(.modelview)
+	GL.loadIdentity()
+	GL.matrixMode(.projection)
+	GL.loadIdentity()
+	GL.perspective(fovy: 70, aspect: 256.0 / 192.0, near: 0.1, far: 100)
+	GL.lookAt(eye:    (0.0, 0.0, 3.0),
+	          center: (0.0, 0.0, 0.0),
+	          up:     (0.0, 1.0, 0.0))
 }
 
 func update3D(_ hours: Int, _ seconds: Int, _ minutes: Int) {
 	// second hand
-	glPushMatrix()
-	glColor3f(0, 0, 1)
-	glRotateZ(Float(-seconds * 360 / 60))
-	glTranslatef(0, 1.9, 0)
+	GL.pushMatrix()
+	GL.color(0, 0, 1)
+	GL.rotateZ(Float(-seconds * 360 / 60))
+	GL.translate(0, 1.9, 0)
 	drawQuad(0, 0, 0.2, 0.2)
-	glPopMatrix(1)
+	GL.popMatrix()
 
 	// minute hand
-	glPushMatrix()
-	glColor3f(0, 1, 0)
-	glRotateZ(Float(-minutes * 360 / 60))
+	GL.pushMatrix()
+	GL.color(0, 1, 0)
+	GL.rotateZ(Float(-minutes * 360 / 60))
 	drawQuad(0, 0, 0.2, 2)
-	glPopMatrix(1)
+	GL.popMatrix()
 
 	// hour hand
-	glPushMatrix()
-	glColor3f(1, 0, 0)
-	glRotateZ(Float(-hours * 360 / 12))
+	GL.pushMatrix()
+	GL.color(1, 0, 0)
+	GL.rotateZ(Float(-hours * 360 / 12))
 	drawQuad(0, 0, 0.3, 1.8)
-	glPopMatrix(1)
+	GL.popMatrix()
 
-	glFlush(0)
+	GL.flush()
 }
 
 //---------------------------------------------------------------------------------
 // Main
 //---------------------------------------------------------------------------------
-_ = consoleDemoInit()
+Console.demoInit()
 init3D()
 
-var year: Int32 = 0, month: Int32 = 0, day: Int32 = 0
-var hour: Int32 = 0, minute: Int32 = 0, second: Int32 = 0
+while System.mainLoop {
+	let t = RTC.now()
+	let month0 = Int(t.month) - 1   // 0-based for month-name / day-of-week tables
 
-while pmMainLoop() {
-	nds_rtc_read(&year, &month, &day, &hour, &minute, &second)
-	let month0 = Int(month) - 1   // 0-based for month-name / day-of-week tables
+	Console.print("\u{1b}[2J")   // clear console
+	Console.printf("%02i:%02i:%02i", t.hour, t.minute, t.second)
 
-	nds_puts("\u{1b}[2J")   // clear console
-	nds_printf_3i("%02i:%02i:%02i", hour, minute, second)
+	let dow = getDayOfWeek(Int(t.day), month0, Int(t.year))
+	Console.print("\n")
+	Console.print(weekDays[dow])
+	Console.print(" ")
+	Console.print(months[month0])
+	Console.printf(" %i %i", t.day, t.year)
 
-	let dow = getDayOfWeek(Int(day), month0, Int(year))
-	nds_puts("\n")
-	nds_puts(weekDays[dow])
-	nds_puts(" ")
-	nds_puts(months[month0])
-	nds_printf_2i(" %i %i", day, year)
+	update3D(Int(t.hour), Int(t.second), Int(t.minute))
 
-	update3D(Int(hour), Int(second), Int(minute))
-
-	threadWaitForVBlank()
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+	System.waitForVBlank()
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 }

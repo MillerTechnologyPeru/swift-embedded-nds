@@ -7,14 +7,7 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
-
-@inline(__always) func rgb15(_ r: UInt16, _ g: UInt16, _ b: UInt16) -> UInt16 {
-	r | (g << 5) | (b << 10)
-}
-@inline(__always) func floattov10(_ n: Float) -> Int16 {
-	n > 0.998 ? 0x1FF : Int16(n * Float(1 << 9))
-}
+import NDS
 
 let NUM = 50
 
@@ -35,41 +28,41 @@ func loadGLTextures() {
 	var pcx = sImage()
 	loadPCX(nds_asset_Star_pcx()!.assumingMemoryBound(to: UInt8.self), &pcx)
 	image8to16trans(&pcx, 0)
-	glGenTextures(1, &texture0)
-	glBindTexture(0, texture0)
-	glTexImage2D(0, 0, GL_RGBA, Int32(TEXTURE_SIZE_128.rawValue), Int32(TEXTURE_SIZE_128.rawValue),
-	             0, Int32(TEXGEN_TEXCOORD.rawValue), pcx.image.data8)
+	_ = GL.genTextures(1, &texture0)
+	GL.bindTexture(0, texture0)
+	_ = GL.texImage2D(target: 0, type: GL_RGBA, sizeX: Int32(TEXTURE_SIZE_128.rawValue), sizeY: Int32(TEXTURE_SIZE_128.rawValue),
+	                  param: Int32(TEXGEN_TEXCOORD.rawValue), texture: pcx.image.data8)
 	imageDestroy(&pcx)
 }
 
 func quad() {
-	glBegin(GL_QUADS)
-		glTexCoord2f(0, 0); glVertex3f(-1, -1, 0)
-		glTexCoord2f(1, 0); glVertex3f(1, -1, 0)
-		glTexCoord2f(1, 1); glVertex3f(1, 1, 0)
-		glTexCoord2f(0, 1); glVertex3f(-1, 1, 0)
-	glEnd()
+	GL.begin(.quads)
+		GL.texCoord(0, 0); GL.vertex(-1, -1, 0)
+		GL.texCoord(1, 0); GL.vertex(1, -1, 0)
+		GL.texCoord(1, 1); GL.vertex(1, 1, 0)
+		GL.texCoord(0, 1); GL.vertex(-1, 1, 0)
+	GL.end()
 }
 
 func drawGLScene() {
-	glBindTexture(Int32(GL_TEXTURE_2D.rawValue), texture0)
+	GL.bindTexture(Int32(GL_TEXTURE_2D.rawValue), texture0)
 	for loop in 0 ..< NUM {
-		glLoadIdentity()
-		glTranslatef(0, 0, zoom)
-		glRotatef(tilt, 1, 0, 0)
-		glRotatef(stars[loop].angle, 0, 1, 0)
-		glTranslatef(stars[loop].dist, 0, 0)
-		glRotatef(-stars[loop].angle, 0, 1, 0)
-		glRotatef(-tilt, 1, 0, 0)
+		GL.loadIdentity()
+		GL.translate(0, 0, zoom)
+		GL.rotate(tilt, 1, 0, 0)
+		GL.rotate(stars[loop].angle, 0, 1, 0)
+		GL.translate(stars[loop].dist, 0, 0)
+		GL.rotate(-stars[loop].angle, 0, 1, 0)
+		GL.rotate(-tilt, 1, 0, 0)
 		if twinkle {
 			let t = stars[NUM - loop - 1]
-			glColor3b(UInt8(truncatingIfNeeded: t.r), UInt8(truncatingIfNeeded: t.g), UInt8(truncatingIfNeeded: t.b))
+			GL.color(r: UInt8(truncatingIfNeeded: t.r), g: UInt8(truncatingIfNeeded: t.g), b: UInt8(truncatingIfNeeded: t.b))
 			quad()
 		}
-		glRotatef(spin, 0, 0, 1)
-		glColor3b(UInt8(truncatingIfNeeded: stars[loop].r),
-		          UInt8(truncatingIfNeeded: stars[loop].g),
-		          UInt8(truncatingIfNeeded: stars[loop].b))
+		GL.rotate(spin, 0, 0, 1)
+		GL.color(r: UInt8(truncatingIfNeeded: stars[loop].r),
+		         g: UInt8(truncatingIfNeeded: stars[loop].g),
+		         b: UInt8(truncatingIfNeeded: stars[loop].b))
 		quad()
 
 		spin += 0.01
@@ -78,44 +71,44 @@ func drawGLScene() {
 		if stars[loop].dist < 0 {
 			stars[loop].dist += 5.0
 			stars[loop].r = rand() % 256
-            stars[loop].g = rand() % 256
-            stars[loop].b = rand() % 256
+			stars[loop].g = rand() % 256
+			stars[loop].b = rand() % 256
 		}
 	}
 }
 
-videoSetMode(MODE_0_3D.rawValue)
-vramSetBankA(VRAM_A_TEXTURE)
-glInit()
-glEnable(Int32(GL_ANTIALIAS.rawValue))
+Video.setMode(.mode0_3D)
+Video.setBankA(VRAM_A_TEXTURE)
+GL.initialize()
+GL.enable(Int32(GL_ANTIALIAS.rawValue))
 
-glClearColor(0, 0, 0, 31)
-glClearPolyID(63)
-glClearDepth(0x7FFF)
-glEnable(Int32(GL_TEXTURE_2D.rawValue))
-glEnable(Int32(GL_BLEND.rawValue))
-glViewport(0, 0, 255, 191)
+GL.clearColor(r: 0, g: 0, b: 0, a: 31)
+GL.clearPolyID(63)
+GL.clearDepth(0x7FFF)
+GL.enable(Int32(GL_TEXTURE_2D.rawValue))
+GL.enable(Int32(GL_BLEND.rawValue))
+GL.viewport(0, 0, 255, 191)
 
 loadGLTextures()
 
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-gluPerspective(70, 256.0 / 192.0, 0.1, 100)
-glColor3f(1, 1, 1)
+GL.matrixMode(.projection)
+GL.loadIdentity()
+GL.perspective(fovy: 70, aspect: 256.0 / 192.0, near: 0.1, far: 100)
+GL.color(1, 1, 1)
 
-glLight(0, rgb15(31, 31, 31), 0, 0, floattov10(-1.0))
-glMaterialf(GL_AMBIENT, rgb15(16, 16, 16))
-glMaterialf(GL_DIFFUSE, rgb15(16, 16, 16))
-glMaterialf(GL_SPECULAR, (UInt16(1) << 15) | rgb15(8, 8, 8))
-glMaterialf(GL_EMISSION, rgb15(16, 16, 16))
-glMaterialShinyness()
-glPolyFmt(POLY_ALPHA(15) | UInt32(POLY_CULL_BACK.rawValue) | UInt32(POLY_FORMAT_LIGHT0.rawValue))
-glMatrixMode(GL_MODELVIEW)
+GL.light(0, color: Color(r: 31, g: 31, b: 31), x: 0, y: 0, z: floattov10(-1.0))
+GL.material(GL_AMBIENT, Color(r: 16, g: 16, b: 16))
+GL.material(GL_DIFFUSE, Color(r: 16, g: 16, b: 16))
+GL.material(GL_SPECULAR, Color(rawValue: (UInt16(1) << 15) | Color(r: 8, g: 8, b: 8).rawValue))
+GL.material(GL_EMISSION, Color(r: 16, g: 16, b: 16))
+GL.materialShininess()
+GL.polyFmt(POLY_ALPHA(15) | UInt32(POLY_CULL_BACK.rawValue) | UInt32(POLY_FORMAT_LIGHT0.rawValue))
+GL.matrixMode(.modelview)
 
-while pmMainLoop() {
+while System.mainLoop {
 	drawGLScene()
-	glFlush(0)
-	threadWaitForVBlank()
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+	GL.flush()
+	System.waitForVBlank()
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 }

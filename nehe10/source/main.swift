@@ -10,29 +10,18 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
-import _Volatile
-
-//---------------------------------------------------------------------------------
-// Small helpers for function-like libnds macros the importer drops.
-//---------------------------------------------------------------------------------
-@inline(__always) func RGB15(_ r: UInt16, _ g: UInt16, _ b: UInt16) -> UInt16 {
-	r | (g << 5) | (b << 10)
-}
-@inline(__always) func floattov10(_ n: Float) -> Int16 {
-	n > 0.998 ? 0x1FF : Int16(n * Float(1 << 9))
-}
+import NDS
 
 // LUT-based sin/cos (matches the C, which avoids libm). Angle in degrees.
 @inline(__always) func luSin(_ angle: Float) -> Float {
 	let a = angle.truncatingRemainder(dividingBy: 360)
 	let idx = Int16(truncatingIfNeeded: Int32(a * Float(DEGREES_IN_CIRCLE) / 360))
-	return Float(sinLerp(idx)) / 4096.0
+	return Float(Math.sin(idx)) / 4096.0
 }
 @inline(__always) func luCos(_ angle: Float) -> Float {
 	let a = angle.truncatingRemainder(dividingBy: 360)
 	let idx = Int16(truncatingIfNeeded: Int32(a * Float(DEGREES_IN_CIRCLE) / 360))
-	return Float(cosLerp(idx)) / 4096.0
+	return Float(Math.cos(idx)) / 4096.0
 }
 
 //---------------------------------------------------------------------------------
@@ -130,22 +119,22 @@ func setupWorld() {
 var texture = [Int32](repeating: 0, count: 2)
 
 func loadGLTextures() {
-	texture.withUnsafeMutableBufferPointer { glGenTextures(2, $0.baseAddress) }
+	texture.withUnsafeMutableBufferPointer { _ = GL.genTextures(2, $0.baseAddress!) }
 
 	var pcx = sImage()
 	loadPCX(nds_asset_Mud_pcx()!.assumingMemoryBound(to: UInt8.self), &pcx)
 	image8to16(&pcx)
-	glBindTexture(0, texture[0])
-	glTexImage2D(0, 0, GL_RGB, Int32(TEXTURE_SIZE_128.rawValue), Int32(TEXTURE_SIZE_128.rawValue), 0,
-	             Int32(TEXGEN_TEXCOORD.rawValue | GL_TEXTURE_WRAP_S.rawValue | GL_TEXTURE_WRAP_T.rawValue),
-	             pcx.image.data8)
+	GL.bindTexture(0, texture[0])
+	_ = GL.texImage2D(target: 0, type: GL_RGB, sizeX: Int32(TEXTURE_SIZE_128.rawValue), sizeY: Int32(TEXTURE_SIZE_128.rawValue),
+	                  param: Int32(TEXGEN_TEXCOORD.rawValue | GL_TEXTURE_WRAP_S.rawValue | GL_TEXTURE_WRAP_T.rawValue),
+	                  texture: pcx.image.data8)
 	imageDestroy(&pcx)
 
 	loadPCX(nds_asset_drunkenlogo_pcx()!.assumingMemoryBound(to: UInt8.self), &pcx)
 	image8to16(&pcx)
-	glBindTexture(0, texture[1])
-	glTexImage2D(0, 0, GL_RGB, Int32(TEXTURE_SIZE_128.rawValue), Int32(TEXTURE_SIZE_128.rawValue), 0,
-	             Int32(TEXGEN_TEXCOORD.rawValue), pcx.image.data8)
+	GL.bindTexture(0, texture[1])
+	_ = GL.texImage2D(target: 0, type: GL_RGB, sizeX: Int32(TEXTURE_SIZE_128.rawValue), sizeY: Int32(TEXTURE_SIZE_128.rawValue),
+	                  param: Int32(TEXGEN_TEXCOORD.rawValue), texture: pcx.image.data8)
 	imageDestroy(&pcx)
 }
 
@@ -163,82 +152,82 @@ var lookupdown: Float = 0
 var cubeRotY: Float = 0
 
 func transformCube() {
-	glRotatef(cubeRotY, 0, 1, 0)
+	GL.rotate(cubeRotY, 0, 1, 0)
 }
 
 func emitCube() {
-	glPushMatrix()
-	glScalef(0.03, 0.03, 0.03)
-	glRotatef(cubeRotY, 0, 1, 0)
+	GL.pushMatrix()
+	GL.scale(0.03, 0.03, 0.03)
+	GL.rotate(cubeRotY, 0, 1, 0)
 
-	glBegin(GL_QUADS)
+	GL.begin(.quads)
 	// Front
-	glTexCoord2f(0, 0); glVertex3f(-1, -1,  1)
-	glTexCoord2f(1, 0); glVertex3f( 1, -1,  1)
-	glTexCoord2f(1, 1); glVertex3f( 1,  1,  1)
-	glTexCoord2f(0, 1); glVertex3f(-1,  1,  1)
+	GL.texCoord(0, 0); GL.vertex(-1, -1,  1)
+	GL.texCoord(1, 0); GL.vertex( 1, -1,  1)
+	GL.texCoord(1, 1); GL.vertex( 1,  1,  1)
+	GL.texCoord(0, 1); GL.vertex(-1,  1,  1)
 	// Back
-	glTexCoord2f(1, 0); glVertex3f(-1, -1, -1)
-	glTexCoord2f(1, 1); glVertex3f(-1,  1, -1)
-	glTexCoord2f(0, 1); glVertex3f( 1,  1, -1)
-	glTexCoord2f(0, 0); glVertex3f( 1, -1, -1)
+	GL.texCoord(1, 0); GL.vertex(-1, -1, -1)
+	GL.texCoord(1, 1); GL.vertex(-1,  1, -1)
+	GL.texCoord(0, 1); GL.vertex( 1,  1, -1)
+	GL.texCoord(0, 0); GL.vertex( 1, -1, -1)
 	// Top
-	glTexCoord2f(0, 1); glVertex3f(-1,  1, -1)
-	glTexCoord2f(0, 0); glVertex3f(-1,  1,  1)
-	glTexCoord2f(1, 0); glVertex3f( 1,  1,  1)
-	glTexCoord2f(1, 1); glVertex3f( 1,  1, -1)
+	GL.texCoord(0, 1); GL.vertex(-1,  1, -1)
+	GL.texCoord(0, 0); GL.vertex(-1,  1,  1)
+	GL.texCoord(1, 0); GL.vertex( 1,  1,  1)
+	GL.texCoord(1, 1); GL.vertex( 1,  1, -1)
 	// Bottom
-	glTexCoord2f(1, 1); glVertex3f(-1, -1, -1)
-	glTexCoord2f(0, 1); glVertex3f( 1, -1, -1)
-	glTexCoord2f(0, 0); glVertex3f( 1, -1,  1)
-	glTexCoord2f(1, 0); glVertex3f(-1, -1,  1)
+	GL.texCoord(1, 1); GL.vertex(-1, -1, -1)
+	GL.texCoord(0, 1); GL.vertex( 1, -1, -1)
+	GL.texCoord(0, 0); GL.vertex( 1, -1,  1)
+	GL.texCoord(1, 0); GL.vertex(-1, -1,  1)
 	// Right
-	glTexCoord2f(1, 0); glVertex3f( 1, -1, -1)
-	glTexCoord2f(1, 1); glVertex3f( 1,  1, -1)
-	glTexCoord2f(0, 1); glVertex3f( 1,  1,  1)
-	glTexCoord2f(0, 0); glVertex3f( 1, -1,  1)
+	GL.texCoord(1, 0); GL.vertex( 1, -1, -1)
+	GL.texCoord(1, 1); GL.vertex( 1,  1, -1)
+	GL.texCoord(0, 1); GL.vertex( 1,  1,  1)
+	GL.texCoord(0, 0); GL.vertex( 1, -1,  1)
 	// Left
-	glTexCoord2f(0, 0); glVertex3f(-1, -1, -1)
-	glTexCoord2f(1, 0); glVertex3f(-1, -1,  1)
-	glTexCoord2f(1, 1); glVertex3f(-1,  1,  1)
-	glTexCoord2f(0, 1); glVertex3f(-1,  1, -1)
-	glEnd()
-	glPopMatrix(1)
+	GL.texCoord(0, 0); GL.vertex(-1, -1, -1)
+	GL.texCoord(1, 0); GL.vertex(-1, -1,  1)
+	GL.texCoord(1, 1); GL.vertex(-1,  1,  1)
+	GL.texCoord(0, 1); GL.vertex(-1,  1, -1)
+	GL.end()
+	GL.popMatrix()
 }
 
 func shadowDemo() {
 	cubeRotY += 0.8
 
 	// the cube itself, up in the air
-	glPushMatrix()
-	glTranslatef(0, 0.4, -0.4)
+	GL.pushMatrix()
+	GL.translate(0, 0.4, -0.4)
 	transformCube()
-	glBindTexture(Int32(GL_TEXTURE_2D.rawValue), texture[1])
+	GL.bindTexture(Int32(GL_TEXTURE_2D.rawValue), texture[1])
 	emitCube()
-	glPopMatrix(1)
+	GL.popMatrix()
 
 	// the shadow on the ground (DS shadow polygons, two passes)
-	glPushMatrix()
-	glTranslatef(0, 0, -0.4)
+	GL.pushMatrix()
+	GL.translate(0, 0, -0.4)
 	transformCube()
 
-	glBindTexture(0, 0)
-	glColor(RGB15(0, 8, 0))   // green, just to show colour is possible
+	GL.bindTexture(0, 0)
+	GL.color(Color(r: 0, g: 8, b: 0))   // green, just to show colour is possible
 
 	// 1st pass: shadow mask — front cull, polyID 0, alpha 1-30
-	glPolyFmt(UInt32(POLY_SHADOW.rawValue) | UInt32(POLY_CULL_FRONT.rawValue)
-	          | POLY_ALPHA(15) | POLY_ID(0))
+	GL.polyFmt(UInt32(POLY_SHADOW.rawValue) | UInt32(POLY_CULL_FRONT.rawValue)
+	           | POLY_ALPHA(15) | POLY_ID(0))
 	emitCube()
 
 	// 2nd pass: shadow render — no cull, polyID 1-63, alpha 1-30, fogged
-	glPolyFmt(UInt32(POLY_SHADOW.rawValue) | UInt32(POLY_CULL_NONE.rawValue)
-	          | POLY_ALPHA(15) | POLY_ID(1) | UInt32(POLY_FOG.rawValue))
+	GL.polyFmt(UInt32(POLY_SHADOW.rawValue) | UInt32(POLY_CULL_NONE.rawValue)
+	           | POLY_ALPHA(15) | POLY_ID(1) | UInt32(POLY_FOG.rawValue))
 	emitCube()
 
 	// reset poly attributes
-	glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue)
-	          | UInt32(POLY_FORMAT_LIGHT0.rawValue) | UInt32(POLY_FOG.rawValue))
-	glPopMatrix(1)
+	GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue)
+	           | UInt32(POLY_FORMAT_LIGHT0.rawValue) | UInt32(POLY_FOG.rawValue))
+	GL.popMatrix()
 }
 
 func drawGLScene() {
@@ -247,20 +236,20 @@ func drawGLScene() {
 	let ytrans = -walkbias - 0.25
 	let sceneroty = 360.0 - yrot
 
-	glLoadIdentity()
-	glRotatef(lookupdown, 1, 0, 0)
-	glRotatef(sceneroty, 0, 1, 0)
-	glTranslatef(xtrans, ytrans, ztrans)
-	glBindTexture(Int32(GL_TEXTURE_2D.rawValue), texture[0])
+	GL.loadIdentity()
+	GL.rotate(lookupdown, 1, 0, 0)
+	GL.rotate(sceneroty, 0, 1, 0)
+	GL.translate(xtrans, ytrans, ztrans)
+	GL.bindTexture(Int32(GL_TEXTURE_2D.rawValue), texture[0])
 
 	for tri in world {
-		glBegin(GL_TRIANGLES)
-		glNormal3f(0, 0, 1)
+		GL.begin(.triangles)
+		GL.normal(0, 0, 1)
 		for vert in 0 ..< 3 {
-			glTexCoord2f(tri.v[vert].u, tri.v[vert].v)
-			glVertex3f(tri.v[vert].x, tri.v[vert].y, tri.v[vert].z)
+			GL.texCoord(tri.v[vert].u, tri.v[vert].v)
+			GL.vertex(tri.v[vert].x, tri.v[vert].y, tri.v[vert].z)
 		}
-		glEnd()
+		GL.end()
 	}
 
 	shadowDemo()
@@ -269,75 +258,75 @@ func drawGLScene() {
 //---------------------------------------------------------------------------------
 // Setup
 //---------------------------------------------------------------------------------
-videoSetMode(MODE_0_3D.rawValue)
-vramSetBankA(VRAM_A_TEXTURE)
-_ = consoleDemoInit()
+Video.setMode(.mode0_3D)
+Video.setBankA(VRAM_A_TEXTURE)
+Console.demoInit()
 
-glInit()
-glEnable(Int32(GL_TEXTURE_2D.rawValue))
-glEnable(Int32(GL_ANTIALIAS.rawValue))
-glEnable(Int32(GL_BLEND.rawValue))
+GL.initialize()
+GL.enable(Int32(GL_TEXTURE_2D.rawValue))
+GL.enable(Int32(GL_ANTIALIAS.rawValue))
+GL.enable(Int32(GL_BLEND.rawValue))
 
-glClearColor(0, 0, 0, 31)
-glClearPolyID(63)
-glClearDepth(0x7FFF)
-glViewport(0, 0, 255, 191)
+GL.clearColor(r: 0, g: 0, b: 0, a: 31)
+GL.clearPolyID(63)
+GL.clearDepth(0x7FFF)
+GL.viewport(0, 0, 255, 191)
 
 loadGLTextures()
 setupWorld()
 
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-gluPerspective(70, 256.0 / 192.0, 0.1, 100)
+GL.matrixMode(.projection)
+GL.loadIdentity()
+GL.perspective(fovy: 70, aspect: 256.0 / 192.0, near: 0.1, far: 100)
 
-glLight(0, RGB15(31, 31, 31), 0, floattov10(-1.0), 0)
+GL.light(0, color: Color(r: 31, g: 31, b: 31), x: 0, y: floattov10(-1.0), z: 0)
 
-glMaterialf(GL_AMBIENT,  RGB15(16, 16, 16))
-glMaterialf(GL_DIFFUSE,  RGB15(16, 16, 16))
-glMaterialf(GL_SPECULAR, (UInt16(1) << 15) | RGB15(8, 8, 8))
-glMaterialf(GL_EMISSION, RGB15(16, 16, 16))
-glMaterialShinyness()
+GL.material(GL_AMBIENT,  Color(r: 16, g: 16, b: 16))
+GL.material(GL_DIFFUSE,  Color(r: 16, g: 16, b: 16))
+GL.material(GL_SPECULAR, Color(rawValue: (UInt16(1) << 15) | Color(r: 8, g: 8, b: 8).rawValue))
+GL.material(GL_EMISSION, Color(r: 16, g: 16, b: 16))
+GL.materialShininess()
 
-glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue)
-          | UInt32(POLY_FORMAT_LIGHT0.rawValue) | UInt32(POLY_FOG.rawValue))
+GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue)
+           | UInt32(POLY_FORMAT_LIGHT0.rawValue) | UInt32(POLY_FOG.rawValue))
 
-glMatrixMode(GL_MODELVIEW)
+GL.matrixMode(.modelview)
 
 // fog parameters (arbitrary, tuned to illustrate fog)
-glEnable(Int32(GL_FOG.rawValue))
-glFogShift(2)
-glFogColor(0, 0, 0, 0)
-for i in Int32(0) ..< 32 { glFogDensity(i, i * 4) }
-glFogDensity(31, 127)
-glFogOffset(0x6000)
+GL.enable(Int32(GL_FOG.rawValue))
+GL.fogShift(2)
+GL.fogColor(r: 0, g: 0, b: 0, a: 0)
+for i in Int32(0) ..< 32 { GL.fogDensity(index: i, i * 4) }
+GL.fogDensity(index: 31, 127)
+GL.fogOffset(0x6000)
 
-while pmMainLoop() {
-	scanKeys()
-	let held = keysHeld()
+while System.mainLoop {
+	Keys.scan()
+	let held = Keys.held
 
-	if held & KEY_A != 0 { lookupdown -= 1 }
-	if held & KEY_B != 0 { lookupdown += 1 }
-	if held & KEY_LEFT  != 0 { heading += 1; yrot = heading }
-	if held & KEY_RIGHT != 0 { heading -= 1; yrot = heading }
-	if held & KEY_DOWN != 0 {
+	if held.contains(.a) { lookupdown -= 1 }
+	if held.contains(.b) { lookupdown += 1 }
+	if held.contains(.left)  { heading += 1; yrot = heading }
+	if held.contains(.right) { heading -= 1; yrot = heading }
+	if held.contains(.down) {
 		xpos += luSin(heading) * 0.05
 		zpos += luCos(heading) * 0.05
 		walkbiasangle = walkbiasangle >= 359 ? 0 : walkbiasangle + 10
 		walkbias = luSin(walkbiasangle) / 20
 	}
-	if held & KEY_UP != 0 {
+	if held.contains(.up) {
 		xpos -= luSin(heading) * 0.05
 		zpos -= luCos(heading) * 0.05
 		walkbiasangle = walkbiasangle <= 1 ? 359 : walkbiasangle - 10
 		walkbias = luSin(walkbiasangle) / 20
 	}
 
-	glColor3f(1, 1, 1)
+	GL.color(1, 1, 1)
 	drawGLScene()
 
 	// don't auto-sort translucent polys — respect shadow draw order
-	glFlush(UInt32(GL_TRANS_MANUALSORT.rawValue))
-	threadWaitForVBlank()
+	GL.flush(UInt32(GL_TRANS_MANUALSORT.rawValue))
+	System.waitForVBlank()
 
-	if held & KEY_START != 0 { break }
+	if held.contains(.start) { break }
 }
