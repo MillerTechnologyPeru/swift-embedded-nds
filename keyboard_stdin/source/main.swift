@@ -7,43 +7,43 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 // Called by libnds for each key press. Non-capturing, so it bridges to the
 // C `void (*)(int)` function-pointer field on the Keyboard struct.
 private func onKeyPressed(_ key: Int32) {
 	if key > 0 {
-		nds_printf_1i("%c", key)
+		Console.printf("%c", key)
 	}
 }
 
-consoleDemoInit()
+Console.demoInit()
 
-let kbd = keyboardDemoInit()!
+let kbd = OnScreenKeyboard.demoInit()!
 kbd.pointee.OnKeyPressed = onKeyPressed
 
 var askname = true
 
-while pmMainLoop() {
-	threadWaitForVBlank()
-	scanKeys()
+while System.mainLoop {
+	System.waitForVBlank()
+	Keys.scan()
 
-	let keys = keysDown()
-	if keys & KEY_START != 0 {
+	let keys = Keys.down
+	if keys.contains(.start) {
 		break
-	} else if keys != 0 {
+	} else if !keys.isEmpty {
 		askname = true
 	}
 
 	if askname {
 		var myName = [CChar](repeating: 0, count: 256)
 
-		consoleClear()
-		nds_puts("What is your name?\n")
-		myName.withUnsafeMutableBufferPointer { nds_scanf_str($0.baseAddress!) }
+		Console.clear()
+		Console.print("What is your name?\n")
+		myName.withUnsafeMutableBufferPointer { Console.scanString(into: $0.baseAddress!) }
 
-		nds_puts("\nHello ")
-		myName.withUnsafeBufferPointer { nds_puts($0.baseAddress!) }
+		Console.print("\nHello ")
+		myName.withUnsafeBufferPointer { Console.print($0.baseAddress!) }
 		askname = false
 	}
 }
