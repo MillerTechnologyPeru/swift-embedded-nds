@@ -142,6 +142,22 @@ public enum GL {
     }
     @inline(__always) public static func texParameter(target: Int32, param: Int32) { glTexParameter(target, param) }
 
+    /// Load a texture palette / colour table (`glColorTableEXT`).
+    @inline(__always) public static func colorTable(_ table: UnsafePointer<UInt16>?, width: UInt16, target: Int32 = 0) {
+        glColorTableEXT(target, 0, width, 0, 0, table)
+    }
+    /// Bind a previously-generated palette to the active texture (`glAssignColorTable`).
+    @inline(__always) public static func assignColorTable(name: Int32, target: Int32 = 0) {
+        glAssignColorTable(target, name)
+    }
+
+    // MARK: Geometry-engine state / matrices
+
+    /// Read a geometry-engine integer (`glGetInt`), e.g. `GL_GET_VERTEX_RAM_COUNT`.
+    @inline(__always) public static func getInt(_ param: GL_GET_ENUM, _ out: UnsafeMutablePointer<Int32>) { glGetInt(param, out) }
+    /// Multiply the current matrix by a scale vector (`glScalev`).
+    @inline(__always) public static func scale(vector v: UnsafePointer<GLvector>) { glScalev(v) }
+
     // MARK: Toon / outline
 
     @inline(__always) public static func setToonTable(_ table: UnsafePointer<UInt16>) { glSetToonTable(table) }
