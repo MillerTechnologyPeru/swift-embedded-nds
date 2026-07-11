@@ -9,14 +9,14 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 // install the default exception handler
-defaultExceptionHandler()
+Exceptions.installDefaultHandler()
 
 // generate an exception: store to a low, protected address
 UnsafeMutablePointer<UInt32>(bitPattern: 8192)!.pointee = 100
 
-while pmMainLoop() {
-	threadWaitForVBlank()
+while System.mainLoop {
+	System.waitForVBlank()
 }
