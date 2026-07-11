@@ -7,18 +7,19 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 @inline(__always) func intToFixed(_ n: Int32, _ bits: Int32) -> Int32 { n << bits }
 
 let tileBase: Int32 = 0
 let mapBase: Int32 = 20
 
-videoSetMode(0)
-videoSetModeSub(MODE_5_2D.rawValue)
-vramSetBankC(VRAM_C_SUB_BG)
+Video.setMode(raw: 0)
+Video.setModeSub(.mode5_2D)
+Video.setBankC(VRAM_C_SUB_BG)
 
-let console = consoleInit(nil, 3, BgType_ExRotation, BgSize_ER_256x256, mapBase, tileBase, false, false)
+let console = Console.initialize(nil, layer: 3, kind: .exRotation, size: BgSize_ER_256x256,
+                                 mapBase: mapBase, tileBase: tileBase, mainDisplay: false, loadGraphics: false)
 
 var font = ConsoleFont()
 font.gfx = UnsafeMutablePointer(mutating: nds_asset_fontTiles()!.assumingMemoryBound(to: UInt16.self))
@@ -28,14 +29,14 @@ font.numColors = UInt16(fontPalLen / 2)
 font.bpp = 8
 font.asciiOffset = 32
 font.convertSingleColor = false
-consoleSetFont(console, &font)
+Console.setFont(console, &font)
 
-let bg3 = console!.pointee.bgId
+let bg3 = Background(id: console!.pointee.bgId)
 
-nds_puts("Custom Font Demo\n")
-nds_puts("   by Poffy\n")
-nds_puts("modified by WinterMute and dovoto\n")
-nds_puts("for libnds examples\n")
+Console.print("Custom Font Demo\n")
+Console.print("   by Poffy\n")
+Console.print("modified by WinterMute and dovoto\n")
+Console.print("for libnds examples\n")
 
 var angle: UInt32 = 0
 var scrollX: Int32 = 0
@@ -43,25 +44,25 @@ var scrollY: Int32 = 0
 var scaleX = intToFixed(1, 8)
 var scaleY = intToFixed(1, 8)
 
-while pmMainLoop() {
-	scanKeys()
-	let keys = keysHeld()
-	if keys & KEY_START != 0 { break }
+while System.mainLoop {
+	Keys.scan()
+	let keys = Keys.held
+	if keys.contains(.start) { break }
 
-	if keys & KEY_L != 0 { angle &+= 64 }
-	if keys & KEY_R != 0 { angle &-= 64 }
-	if keys & KEY_LEFT != 0 { scrollX += 1 }
-	if keys & KEY_RIGHT != 0 { scrollX -= 1 }
-	if keys & KEY_UP != 0 { scrollY += 1 }
-	if keys & KEY_DOWN != 0 { scrollY -= 1 }
-	if keys & KEY_A != 0 { scaleX += 1 }
-	if keys & KEY_B != 0 { scaleX -= 1 }
-	if keys & KEY_X != 0 { scaleY += 1 }
-	if keys & KEY_Y != 0 { scaleY -= 1 }
+	if keys.contains(.l) { angle &+= 64 }
+	if keys.contains(.r) { angle &-= 64 }
+	if keys.contains(.left) { scrollX += 1 }
+	if keys.contains(.right) { scrollX -= 1 }
+	if keys.contains(.up) { scrollY += 1 }
+	if keys.contains(.down) { scrollY -= 1 }
+	if keys.contains(.a) { scaleX += 1 }
+	if keys.contains(.b) { scaleX -= 1 }
+	if keys.contains(.x) { scaleY += 1 }
+	if keys.contains(.y) { scaleY -= 1 }
 
-	threadWaitForVBlank()
+	System.waitForVBlank()
 
-	bgSetRotateScale(bg3, Int32(bitPattern: angle), scaleX, scaleY)
-	bgSetScroll(bg3, scrollX, scrollY)
-	bgUpdate()
+	bg3.setRotateScale(angle: Int32(bitPattern: angle), sx: scaleX, sy: scaleY)
+	bg3.setScroll(x: scrollX, y: scrollY)
+	Background.update()
 }
