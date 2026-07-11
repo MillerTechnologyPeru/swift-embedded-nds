@@ -86,10 +86,10 @@ var paletteID: Int32 = 0
 var originalPaletteID: Int32 = 0
 _ = GL.genTextures(1, &paletteID)
 GL.bindTexture(0, paletteID)
-hitPal.withUnsafeBufferPointer { glColorTableEXT(0, 0, 256, 0, 0, $0.baseAddress) }
+hitPal.withUnsafeBufferPointer { GL.colorTable($0.baseAddress, width: 256) }
 _ = GL.genTextures(1, &originalPaletteID)
 GL.bindTexture(0, originalPaletteID)
-glColorTableEXT(0, 0, 256, 0, 0, nds_asset_enemiesPal()!.assumingMemoryBound(to: UInt16.self))
+GL.colorTable(nds_asset_enemiesPal()!.assumingMemoryBound(to: UInt16.self), width: 256)
 
 let enemiesPalPtr = nds_asset_enemiesPal()!.assumingMemoryBound(to: UInt16.self)
 enemies.withUnsafeMutableBufferPointer { buf in
@@ -191,14 +191,14 @@ while System.mainLoop {
 		GL2D.spriteStretchHorizontal(x: 0, y: 135, lengthX: 64 + (abs(slerp(frame &* 100) &* 200) >> 12), $0.baseAddress!)
 	}
 
-	glSetActiveTexture(zeroTextureID)
+	GL2D.setActiveTexture(zeroTextureID)
 	zero.withUnsafeBufferPointer { z in
-		glAssignColorTable(0, paletteID)
+		GL.assignColorTable(name: paletteID)
 		GL2D.sprite(x: 0, y: 42 * 0, flip: FLIP_NONE, z.baseAddress! + zeroFrame)
 		let color = (frame &* 4) & 31
 		GL.color(rgb15(color, 31 - color, 16 + color &* 2))
 		GL2D.sprite(x: 0, y: 42 * 1, flip: FLIP_H, z.baseAddress! + zeroFrame)
-		glAssignColorTable(0, originalPaletteID)
+		GL.assignColorTable(name: originalPaletteID)
 		GL.color(rgb15(31 - color, 16 + color &* 2, color))
 		GL2D.sprite(x: 0, y: 42 * 2, flip: FLIP_V, z.baseAddress! + zeroFrame)
 		GL.color(rgb15(31, 31, 31))
