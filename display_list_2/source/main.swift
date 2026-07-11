@@ -7,68 +7,58 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
-
-@inline(__always) func rgb15(_ r: UInt16, _ g: UInt16, _ b: UInt16) -> UInt16 {
-	r | (g << 5) | (b << 10)
-}
-// floattov10(n): float -> v10, clamped near 1.0 just like the libnds macro.
-@inline(__always) func floattov10(_ n: Float) -> Int16 {
-	n > 0.998 ? 0x1FF : Int16(n * Float(1 << 9))
-}
+import NDS
 
 var rotateX: Float = 0.0
 var rotateY: Float = 0.0
 
-videoSetMode(MODE_0_3D.rawValue)
-glInit()
-glEnable(Int32(GL_ANTIALIAS.rawValue))
+Video.setMode(.mode0_3D)
+GL.initialize()
+GL.enable(Int32(GL_ANTIALIAS.rawValue))
 
-glClearColor(0, 0, 0, 31)
-glClearPolyID(63)
-glClearDepth(0x7FFF)
+GL.clearColor(r: 0, g: 0, b: 0, a: 31)
+GL.clearPolyID(63)
+GL.clearDepth(0x7FFF)
 
-glViewport(0, 0, 255, 191)
+GL.viewport(0, 0, 255, 191)
 
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-gluPerspective(70, 256.0 / 192.0, 0.1, 40)
+GL.matrixMode(.projection)
+GL.loadIdentity()
+GL.perspective(fovy: 70, aspect: 256.0 / 192.0, near: 0.1, far: 40)
 
-gluLookAt(0.0, 0.0, 3.5,
-          0.0, 0.0, 0.0,
-          0.0, 1.0, 0.0)
+GL.lookAt(eye: (0.0, 0.0, 3.5), center: (0.0, 0.0, 0.0), up: (0.0, 1.0, 0.0))
 
-glLight(0, rgb15(31, 31, 31), 0,                floattov10(-1.0), 0)
-glLight(1, rgb15(31, 0, 31),  0,                floattov10(1) - 1, 0)
-glLight(2, rgb15(0, 31, 0),   floattov10(-1.0), 0,                0)
-glLight(3, rgb15(0, 0, 31),   floattov10(1.0) - 1, 0,             0)
+GL.light(0, color: Color(r: 31, g: 31, b: 31), x: 0,                y: floattov10(-1.0), z: 0)
+GL.light(1, color: Color(r: 31, g: 0, b: 31),  x: 0,                y: floattov10(1) - 1, z: 0)
+GL.light(2, color: Color(r: 0, g: 31, b: 0),   x: floattov10(-1.0), y: 0,                z: 0)
+GL.light(3, color: Color(r: 0, g: 0, b: 31),   x: floattov10(1.0) - 1, y: 0,             z: 0)
 
-glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_BACK.rawValue)
-          | UInt32(POLY_FORMAT_LIGHT0.rawValue) | UInt32(POLY_FORMAT_LIGHT1.rawValue)
-          | UInt32(POLY_FORMAT_LIGHT2.rawValue) | UInt32(POLY_FORMAT_LIGHT3.rawValue))
+GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_BACK.rawValue)
+           | UInt32(POLY_FORMAT_LIGHT0.rawValue) | UInt32(POLY_FORMAT_LIGHT1.rawValue)
+           | UInt32(POLY_FORMAT_LIGHT2.rawValue) | UInt32(POLY_FORMAT_LIGHT3.rawValue))
 
 // stable pointer to the linked display-list blob
 let teapot = nds_asset_teapot_bin()!.assumingMemoryBound(to: UInt32.self)
 
-while pmMainLoop() {
-	threadWaitForVBlank()
-	scanKeys()
-	let keys = keysHeld()
+while System.mainLoop {
+	System.waitForVBlank()
+	Keys.scan()
+	let keys = Keys.held
 
-	if keys & KEY_START != 0 { break }
-	if keys & KEY_UP == 0    { rotateX += 3 }
-	if keys & KEY_DOWN == 0  { rotateX -= 3 }
-	if keys & KEY_LEFT == 0  { rotateY += 3 }
-	if keys & KEY_RIGHT == 0 { rotateY -= 3 }
+	if keys.contains(.start) { break }
+	if !keys.contains(.up)    { rotateX += 3 }
+	if !keys.contains(.down)  { rotateX -= 3 }
+	if !keys.contains(.left)  { rotateY += 3 }
+	if !keys.contains(.right) { rotateY -= 3 }
 
-	glPushMatrix()
+	GL.pushMatrix()
 
-	glRotateX(rotateX)
-	glRotateY(rotateY)
+	GL.rotateX(rotateX)
+	GL.rotateY(rotateY)
 
-	glCallList(teapot)
+	GL.callList(teapot)
 
-	glPopMatrix(1)
+	GL.popMatrix()
 
-	glFlush(0)
+	GL.flush()
 }
