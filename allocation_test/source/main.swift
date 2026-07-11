@@ -8,11 +8,11 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 let SPRITE_MAX = 128
 let spriteMemSize: UInt32 = 128 * 1024
-let oam = nds_oam_main()!.assumingMemoryBound(to: OamState.self)
+let oam = OAM.main
 
 // the available hardware sprite sizes, for random selection
 let sizes: [SpriteSize] = [
@@ -27,7 +27,7 @@ struct MySprite {
 	var dx: Int32 = 0, dy: Int32 = 0
 	var alive = false
 	var gfx: UnsafeMutablePointer<UInt16>? = nil
-	var format: SpriteColorFormat = SpriteColorFormat_256Color
+	var format: OAM.ColorFormat = .color256
 	var size: SpriteSize = SpriteSize_8x8
 }
 
@@ -44,8 +44,8 @@ func createSprite(_ s: inout MySprite, x: Int32, y: Int32, size: SpriteSize, dx:
 	s.x = x; s.y = y; s.z = 0
 	s.dx = dx; s.dy = dy
 	s.size = size
-	s.format = SpriteColorFormat_256Color
-	s.gfx = oamAllocateGfx(oam, size, s.format)
+	s.format = .color256
+	s.gfx = oam.allocateGfx(size: size, format: s.format)
 	allocationCount += 1
 	if s.gfx != nil {
 		spriteMemoryUsage += sizeBytes(size)
@@ -59,7 +59,7 @@ func createSprite(_ s: inout MySprite, x: Int32, y: Int32, size: SpriteSize, dx:
 func killSprite(_ s: inout MySprite) {
 	s.alive = false
 	if let gfx = s.gfx {
-		oamFreeGfx(oam, gfx)
+		oam.freeGfx(gfx)
 		spriteMemoryUsage -= sizeBytes(s.size)
 	}
 	s.gfx = nil
@@ -99,25 +99,25 @@ func updateSprites() {
 		return a.z < b.z
 	}
 	for i in 0 ..< SPRITE_MAX {
-		oamSet(oam, Int32(i), sprites[i].x, sprites[i].y, 0, 0,
-		       sprites[i].size, sprites[i].format, sprites[i].gfx,
-		       -1, false, !sprites[i].alive, false, false, false)
+		oam.set(id: Int32(i), x: sprites[i].x, y: sprites[i].y, priority: 0, paletteAlpha: 0,
+		        size: sprites[i].size, format: sprites[i].format, gfx: sprites[i].gfx,
+		        hide: !sprites[i].alive)
 	}
 }
 
-videoSetMode(MODE_0_2D.rawValue)
-videoSetModeSub(MODE_0_2D.rawValue)
-vramSetBankA(VRAM_A_MAIN_SPRITE)
-vramSetBankB(VRAM_B_MAIN_SPRITE)
-vramSetBankD(VRAM_D_SUB_SPRITE)
+Video.setMode(.mode0_2D)
+Video.setModeSub(.mode0_2D)
+Video.setBankA(VRAM_A_MAIN_SPRITE)
+Video.setBankB(VRAM_B_MAIN_SPRITE)
+Video.setBankD(VRAM_D_SUB_SPRITE)
 
-consoleDemoInit()
-oamInit(oam, SpriteMapping_1D_128, false)
+Console.demoInit()
+oam.initialize(mapping: SpriteMapping_1D_128)
 
 for i in 0 ..< SPRITE_MAX { randomSprite(&sprites[i]) }
 
-let mainPal = nds_sprite_palette()!
-let subPal = nds_sprite_palette_sub()!
+let mainPal = OAM.mainPalette!
+let subPal = OAM.subPalette!
 for i in 0 ..< 256 {
 	mainPal[i] = UInt16(truncatingIfNeeded: rand())
 	subPal[i] = UInt16(truncatingIfNeeded: rand())
@@ -125,25 +125,25 @@ for i in 0 ..< 256 {
 
 var memUsageTemp: UInt32 = 0xFFFFFFFF
 
-while pmMainLoop() {
+while System.mainLoop {
 	moveSprites()
 	updateSprites()
 
-	threadWaitForVBlank()
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+	System.waitForVBlank()
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 
-	oamUpdate(oam)
+	oam.update()
 
 	if oom { memUsageTemp = min(memUsageTemp, spriteMemoryUsage) }
 
-	consoleClear()
-	nds_printf_2i("Memory usage: %lu %lu%% \n",
-	              Int32(bitPattern: spriteMemoryUsage),
-	              Int32(bitPattern: 100 * spriteMemoryUsage / spriteMemSize))
-	nds_printf_1i("Percentage fail: %lu%% \n",
-	              Int32(bitPattern: allocationCount == 0 ? 0 : oomCount * 100 / allocationCount))
-	nds_printf_2i("Lowest usage at fail %lu %lu%% \n",
-	              Int32(bitPattern: memUsageTemp),
-	              Int32(bitPattern: 100 * memUsageTemp / spriteMemSize))
+	Console.clear()
+	Console.printf("Memory usage: %lu %lu%% \n",
+	               Int32(bitPattern: spriteMemoryUsage),
+	               Int32(bitPattern: 100 * spriteMemoryUsage / spriteMemSize))
+	Console.printf("Percentage fail: %lu%% \n",
+	               Int32(bitPattern: allocationCount == 0 ? 0 : oomCount * 100 / allocationCount))
+	Console.printf("Lowest usage at fail %lu %lu%% \n",
+	               Int32(bitPattern: memUsageTemp),
+	               Int32(bitPattern: 100 * memUsageTemp / spriteMemSize))
 }
