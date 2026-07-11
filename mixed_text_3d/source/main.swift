@@ -7,73 +7,73 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 var rtri: Float = 0
 var rquad: Float = 0
 
 func drawGLScene() {
-	glLoadIdentity()
-	glTranslatef(-1.5, 0.0, -6.0)
-	glRotatef(rtri, 0.0, 1.0, 0.0)
-	glColor3f(1, 1, 1)
-	glBegin(GL_TRIANGLES)
-		glColor3f(1.0, 0.0, 0.0)
-		glVertex3f(0.0, 1.0, 0.0)
-		glColor3f(0.0, 1.0, 0.0)
-		glVertex3f(-1.0, -1.0, 0.0)
-		glColor3f(0.0, 0.0, 1.0)
-		glVertex3f(1.0, -1.0, 0.0)
-	glEnd()
-	glLoadIdentity()
-	glTranslatef(1.5, 0.0, -6.0)
-	glRotatef(rquad, 1.0, 0.0, 0.0)
-	glColor3f(0.5, 0.5, 1.0)
-	glBegin(GL_QUADS)
-		glVertex3f(-1.0, 1.0, 0.0)
-		glVertex3f(1.0, 1.0, 0.0)
-		glVertex3f(1.0, -1.0, 0.0)
-		glVertex3f(-1.0, -1.0, 0.0)
-	glEnd()
+	GL.loadIdentity()
+	GL.translate(-1.5, 0.0, -6.0)
+	GL.rotate(rtri, 0.0, 1.0, 0.0)
+	GL.color(1, 1, 1)
+	GL.begin(.triangles)
+		GL.color(1.0, 0.0, 0.0)
+		GL.vertex(0.0, 1.0, 0.0)
+		GL.color(0.0, 1.0, 0.0)
+		GL.vertex(-1.0, -1.0, 0.0)
+		GL.color(0.0, 0.0, 1.0)
+		GL.vertex(1.0, -1.0, 0.0)
+	GL.end()
+	GL.loadIdentity()
+	GL.translate(1.5, 0.0, -6.0)
+	GL.rotate(rquad, 1.0, 0.0, 0.0)
+	GL.color(0.5, 0.5, 1.0)
+	GL.begin(.quads)
+		GL.vertex(-1.0, 1.0, 0.0)
+		GL.vertex(1.0, 1.0, 0.0)
+		GL.vertex(1.0, -1.0, 0.0)
+		GL.vertex(-1.0, -1.0, 0.0)
+	GL.end()
 }
 
-glInit()
-videoSetMode(MODE_0_3D.rawValue)
+GL.initialize()
+Video.setMode(.mode0_3D)
 
 // map some vram to background for printing
-vramSetBankC(VRAM_C_MAIN_BG_0x06000000)
-consoleInit(nil, 1, BgType_Text4bpp, BgSize_T_256x256, 31, 0, true, true)
+Video.setBankC(VRAM_C_MAIN_BG_0x06000000)
+Console.initialize(nil, layer: 1, kind: .text4bpp, size: BgSize_T_256x256, mapBase: 31, tileBase: 0, mainDisplay: true)
 
 // put bg 0 (the 3D layer) below the text background
-bgSetPriority(0, 1)
+Background(id: 0).priority = 1
 
-glEnable(Int32(GL_ANTIALIAS.rawValue))
-glClearColor(0, 0, 0, 31)
-glClearPolyID(63)
-glClearDepth(0x7FFF)
-glViewport(0, 0, 255, 191)
+GL.enable(Int32(GL_ANTIALIAS.rawValue))
+GL.clearColor(r: 0, g: 0, b: 0, a: 31)
+GL.clearPolyID(63)
+GL.clearDepth(0x7FFF)
+GL.viewport(0, 0, 255, 191)
 
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-gluPerspective(70, 256.0 / 192.0, 0.1, 100)
+GL.matrixMode(.projection)
+GL.loadIdentity()
+GL.perspective(fovy: 70, aspect: 256.0 / 192.0, near: 0.1, far: 100)
 
-glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
-glMatrixMode(GL_MODELVIEW)
+GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
+GL.matrixMode(.modelview)
 
-nds_puts("      Hello DS World\n")
-nds_puts("     www.devkitpro.org\n")
-nds_puts("   www.drunkencoders.com\n")
+Console.print("      Hello DS World\n")
+Console.print("     www.devkitpro.org\n")
+Console.print("   www.drunkencoders.com\n")
 
-while pmMainLoop() {
+while System.mainLoop {
 	drawGLScene()
-	glFlush(0)
-	threadWaitForVBlank()
+	GL.flush()
+	System.waitForVBlank()
 
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 
-	nds_printf_1f("\u{1b}[15;5H rtri  = %f     \n", Double(rtri))
-	nds_printf_1f("\u{1b}[16;5H rquad = %f     \n", Double(rquad))
+	Console.printf("\u{1b}[15;5H rtri  = %f     \n", Double(rtri))
+	Console.printf("\u{1b}[16;5H rquad = %f     \n", Double(rquad))
 	rtri += 0.9
 	rquad -= 0.75
 	rtri = rtri.truncatingRemainder(dividingBy: 360)
