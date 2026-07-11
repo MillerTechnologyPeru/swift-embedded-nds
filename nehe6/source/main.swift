@@ -7,11 +7,7 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
-
-@inline(__always) func floattov10(_ n: Float) -> Int16 {
-	n > 0.998 ? 0x1FF : Int16(n * Float(1 << 9))
-}
+import NDS
 
 var xrot: Float = 0, yrot: Float = 0, zrot: Float = 0
 var texture0: Int32 = 0
@@ -20,88 +16,88 @@ func loadGLTextures() {
 	var pcx = sImage()
 	loadPCX(nds_asset_drunkenlogo_pcx()!.assumingMemoryBound(to: UInt8.self), &pcx)
 	image8to16(&pcx)
-	glGenTextures(1, &texture0)
-	glBindTexture(0, texture0)
-	glTexImage2D(0, 0, GL_RGB, Int32(TEXTURE_SIZE_128.rawValue), Int32(TEXTURE_SIZE_128.rawValue),
-	             0, Int32(TEXGEN_TEXCOORD.rawValue), pcx.image.data8)
+	_ = GL.genTextures(1, &texture0)
+	GL.bindTexture(0, texture0)
+	_ = GL.texImage2D(target: 0, type: GL_RGB, sizeX: Int32(TEXTURE_SIZE_128.rawValue), sizeY: Int32(TEXTURE_SIZE_128.rawValue),
+	                  param: Int32(TEXGEN_TEXCOORD.rawValue), texture: pcx.image.data8)
 	imageDestroy(&pcx)
 }
 
 func drawGLScene() {
-	glLoadIdentity()
-	glTranslatef(0, 0, -5.0)
-	glRotatef(xrot, 1, 0, 0)
-	glRotatef(yrot, 0, 1, 0)
-	glRotatef(zrot, 0, 0, 1)
-	glBindTexture(Int32(GL_TEXTURE_2D.rawValue), texture0)
-	glBegin(GL_QUADS)
-		glTexCoord2f(0, 0); glVertex3f(-1, -1, 1)
-		glTexCoord2f(1, 0); glVertex3f(1, -1, 1)
-		glTexCoord2f(1, 1); glVertex3f(1, 1, 1)
-		glTexCoord2f(0, 1); glVertex3f(-1, 1, 1)
-		glTexCoord2f(1, 0); glVertex3f(-1, -1, -1)
-		glTexCoord2f(1, 1); glVertex3f(-1, 1, -1)
-		glTexCoord2f(0, 1); glVertex3f(1, 1, -1)
-		glTexCoord2f(0, 0); glVertex3f(1, -1, -1)
-		glTexCoord2f(0, 1); glVertex3f(-1, 1, -1)
-		glTexCoord2f(0, 0); glVertex3f(-1, 1, 1)
-		glTexCoord2f(1, 0); glVertex3f(1, 1, 1)
-		glTexCoord2f(1, 1); glVertex3f(1, 1, -1)
-		glTexCoord2f(1, 1); glVertex3f(-1, -1, -1)
-		glTexCoord2f(0, 1); glVertex3f(1, -1, -1)
-		glTexCoord2f(0, 0); glVertex3f(1, -1, 1)
-		glTexCoord2f(1, 0); glVertex3f(-1, -1, 1)
-		glTexCoord2f(1, 0); glVertex3f(1, -1, -1)
-		glTexCoord2f(1, 1); glVertex3f(1, 1, -1)
-		glTexCoord2f(0, 1); glVertex3f(1, 1, 1)
-		glTexCoord2f(0, 0); glVertex3f(1, -1, 1)
-		glTexCoord2f(0, 0); glVertex3f(-1, -1, -1)
-		glTexCoord2f(1, 0); glVertex3f(-1, -1, 1)
-		glTexCoord2f(1, 1); glVertex3f(-1, 1, 1)
-		glTexCoord2f(0, 1); glVertex3f(-1, 1, -1)
-	glEnd()
+	GL.loadIdentity()
+	GL.translate(0, 0, -5.0)
+	GL.rotate(xrot, 1, 0, 0)
+	GL.rotate(yrot, 0, 1, 0)
+	GL.rotate(zrot, 0, 0, 1)
+	GL.bindTexture(Int32(GL_TEXTURE_2D.rawValue), texture0)
+	GL.begin(.quads)
+		GL.texCoord(0, 0); GL.vertex(-1, -1, 1)
+		GL.texCoord(1, 0); GL.vertex(1, -1, 1)
+		GL.texCoord(1, 1); GL.vertex(1, 1, 1)
+		GL.texCoord(0, 1); GL.vertex(-1, 1, 1)
+		GL.texCoord(1, 0); GL.vertex(-1, -1, -1)
+		GL.texCoord(1, 1); GL.vertex(-1, 1, -1)
+		GL.texCoord(0, 1); GL.vertex(1, 1, -1)
+		GL.texCoord(0, 0); GL.vertex(1, -1, -1)
+		GL.texCoord(0, 1); GL.vertex(-1, 1, -1)
+		GL.texCoord(0, 0); GL.vertex(-1, 1, 1)
+		GL.texCoord(1, 0); GL.vertex(1, 1, 1)
+		GL.texCoord(1, 1); GL.vertex(1, 1, -1)
+		GL.texCoord(1, 1); GL.vertex(-1, -1, -1)
+		GL.texCoord(0, 1); GL.vertex(1, -1, -1)
+		GL.texCoord(0, 0); GL.vertex(1, -1, 1)
+		GL.texCoord(1, 0); GL.vertex(-1, -1, 1)
+		GL.texCoord(1, 0); GL.vertex(1, -1, -1)
+		GL.texCoord(1, 1); GL.vertex(1, 1, -1)
+		GL.texCoord(0, 1); GL.vertex(1, 1, 1)
+		GL.texCoord(0, 0); GL.vertex(1, -1, 1)
+		GL.texCoord(0, 0); GL.vertex(-1, -1, -1)
+		GL.texCoord(1, 0); GL.vertex(-1, -1, 1)
+		GL.texCoord(1, 1); GL.vertex(-1, 1, 1)
+		GL.texCoord(0, 1); GL.vertex(-1, 1, -1)
+	GL.end()
 	xrot += 0.3
 	yrot += 0.2
 	zrot += 0.4
 }
 
-videoSetMode(MODE_0_3D.rawValue)
-vramSetBankA(VRAM_A_TEXTURE)
-glInit()
-glEnable(Int32(GL_TEXTURE_2D.rawValue))
-glEnable(Int32(GL_ANTIALIAS.rawValue))
+Video.setMode(.mode0_3D)
+Video.setBankA(VRAM_A_TEXTURE)
+GL.initialize()
+GL.enable(Int32(GL_TEXTURE_2D.rawValue))
+GL.enable(Int32(GL_ANTIALIAS.rawValue))
 
-glClearColor(0, 0, 0, 31)
-glClearPolyID(63)
-glClearDepth(0x7FFF)
-glViewport(0, 0, 255, 191)
+GL.clearColor(r: 0, g: 0, b: 0, a: 31)
+GL.clearPolyID(63)
+GL.clearDepth(0x7FFF)
+GL.viewport(0, 0, 255, 191)
 
 loadGLTextures()
 
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-gluPerspective(70, 256.0 / 192.0, 0.1, 100)
-glMatrixMode(GL_MODELVIEW)
+GL.matrixMode(.projection)
+GL.loadIdentity()
+GL.perspective(fovy: 70, aspect: 256.0 / 192.0, near: 0.1, far: 100)
+GL.matrixMode(.modelview)
 
-glMaterialf(GL_AMBIENT, 16 | (16 << 5) | (16 << 10))
-glMaterialf(GL_DIFFUSE, 16 | (16 << 5) | (16 << 10))
-glMaterialf(GL_SPECULAR, (UInt16(1) << 15) | (8 | (8 << 5) | (8 << 10)))
-glMaterialf(GL_EMISSION, 16 | (16 << 5) | (16 << 10))
-glMaterialShinyness()
+GL.material(GL_AMBIENT, Color(r: 16, g: 16, b: 16))
+GL.material(GL_DIFFUSE, Color(r: 16, g: 16, b: 16))
+GL.material(GL_SPECULAR, Color(rawValue: (UInt16(1) << 15) | Color(r: 8, g: 8, b: 8).rawValue))
+GL.material(GL_EMISSION, Color(r: 16, g: 16, b: 16))
+GL.materialShininess()
 
-glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue)
-          | UInt32(POLY_FORMAT_LIGHT0.rawValue) | UInt32(POLY_FORMAT_LIGHT1.rawValue)
-          | UInt32(POLY_FORMAT_LIGHT2.rawValue))
+GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue)
+           | UInt32(POLY_FORMAT_LIGHT0.rawValue) | UInt32(POLY_FORMAT_LIGHT1.rawValue)
+           | UInt32(POLY_FORMAT_LIGHT2.rawValue))
 
-glLight(0, 31 | (31 << 5) | (31 << 10), 0, floattov10(-1.0), 0)
-glLight(1, 31 | (31 << 5) | (31 << 10), 0, 0, floattov10(-1.0))
-glLight(2, 31 | (31 << 5) | (31 << 10), 0, 0, floattov10(1.0))
+GL.light(0, color: Color(r: 31, g: 31, b: 31), x: 0, y: floattov10(-1.0), z: 0)
+GL.light(1, color: Color(r: 31, g: 31, b: 31), x: 0, y: 0, z: floattov10(-1.0))
+GL.light(2, color: Color(r: 31, g: 31, b: 31), x: 0, y: 0, z: floattov10(1.0))
 
-while pmMainLoop() {
-	glColor3f(1, 1, 1)
+while System.mainLoop {
+	GL.color(1, 1, 1)
 	drawGLScene()
-	glFlush(0)
-	threadWaitForVBlank()
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+	GL.flush()
+	System.waitForVBlank()
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 }
