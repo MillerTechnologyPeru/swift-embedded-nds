@@ -7,59 +7,60 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
-var bg = [Int32](repeating: 0, count: 4)
 var frames: Int32 = 0
 
-videoSetMode(MODE_0_2D.rawValue)
-videoSetModeSub(MODE_0_2D.rawValue)
-vramSetBankA(VRAM_A_MAIN_BG)
-vramSetBankC(VRAM_C_SUB_BG)
+Video.setMode(.mode0_2D)
+Video.setModeSub(.mode0_2D)
+Video.setBankA(VRAM_A_MAIN_BG)
+Video.setBankC(VRAM_C_SUB_BG)
 
-bgExtPaletteEnable()
-bgExtPaletteEnableSub()
+Background.enableExtPalette()
+Background.enableExtPaletteSub()
 
 // extended palettes need 8bpp tiled bgs with 16-bit map entries
-bg[0] = bgInit(0, BgType_Text8bpp, BgSize_T_256x256, 6, 0)
-bg[1] = bgInit(1, BgType_Text8bpp, BgSize_T_256x256, 7, 1)
-bg[2] = bgInitSub(0, BgType_Text8bpp, BgSize_T_256x256, 6, 0)
-bg[3] = bgInitSub(1, BgType_Text8bpp, BgSize_T_256x256, 7, 1)
+let bg = [
+	Background.main(layer: 0, kind: .text8bpp, size: BgSize_T_256x256, mapBase: 6, tileBase: 0),
+	Background.main(layer: 1, kind: .text8bpp, size: BgSize_T_256x256, mapBase: 7, tileBase: 1),
+	Background.sub(layer: 0, kind: .text8bpp, size: BgSize_T_256x256, mapBase: 6, tileBase: 0),
+	Background.sub(layer: 1, kind: .text8bpp, size: BgSize_T_256x256, mapBase: 7, tileBase: 1),
+]
 
 // tiles
-dmaCopy(nds_asset_devkitlogoTiles(), bgGetGfxPtr(bg[0]), UInt32(devkitlogoTilesLen))
-dmaCopy(nds_asset_drunkenlogoTiles(), bgGetGfxPtr(bg[1]), UInt32(drunkenlogoTilesLen))
-dmaCopy(nds_asset_devkitlogoTiles(), bgGetGfxPtr(bg[2]), UInt32(devkitlogoTilesLen))
-dmaCopy(nds_asset_drunkenlogoTiles(), bgGetGfxPtr(bg[3]), UInt32(drunkenlogoTilesLen))
+DMA.copy(from: nds_asset_devkitlogoTiles(), to: bg[0].gfxPointer!, size: UInt32(devkitlogoTilesLen))
+DMA.copy(from: nds_asset_drunkenlogoTiles(), to: bg[1].gfxPointer!, size: UInt32(drunkenlogoTilesLen))
+DMA.copy(from: nds_asset_devkitlogoTiles(), to: bg[2].gfxPointer!, size: UInt32(devkitlogoTilesLen))
+DMA.copy(from: nds_asset_drunkenlogoTiles(), to: bg[3].gfxPointer!, size: UInt32(drunkenlogoTilesLen))
 
 // maps
-dmaCopy(nds_asset_devkitlogoMap(), bgGetMapPtr(bg[0]), UInt32(devkitlogoMapLen))
-dmaCopy(nds_asset_drunkenlogoMap(), bgGetMapPtr(bg[1]), UInt32(drunkenlogoMapLen))
-dmaCopy(nds_asset_devkitlogoMap(), bgGetMapPtr(bg[2]), UInt32(devkitlogoMapLen))
-dmaCopy(nds_asset_drunkenlogoMap(), bgGetMapPtr(bg[3]), UInt32(drunkenlogoMapLen))
+DMA.copy(from: nds_asset_devkitlogoMap(), to: bg[0].mapPointer!, size: UInt32(devkitlogoMapLen))
+DMA.copy(from: nds_asset_drunkenlogoMap(), to: bg[1].mapPointer!, size: UInt32(drunkenlogoMapLen))
+DMA.copy(from: nds_asset_devkitlogoMap(), to: bg[2].mapPointer!, size: UInt32(devkitlogoMapLen))
+DMA.copy(from: nds_asset_drunkenlogoMap(), to: bg[3].mapPointer!, size: UInt32(drunkenlogoMapLen))
 
 // ext palettes are only writable in LCD mode
-vramSetBankE(VRAM_E_LCD)
-vramSetBankH(VRAM_H_LCD)
+Video.setBankE(VRAM_E_LCD)
+Video.setBankH(VRAM_H_LCD)
 
 // drunkenlogo was grit'd into slot 12 (-mp 12) for demonstration
-dmaCopy(nds_asset_devkitlogoPal(), nds_vram_e_ext_palette(0, 0), UInt32(devkitlogoPalLen))
-dmaCopy(nds_asset_drunkenlogoPal(), nds_vram_e_ext_palette(1, 12), UInt32(drunkenlogoPalLen))
-dmaCopy(nds_asset_devkitlogoPal(), nds_vram_h_ext_palette(0, 0), UInt32(devkitlogoPalLen))
-dmaCopy(nds_asset_drunkenlogoPal(), nds_vram_h_ext_palette(1, 12), UInt32(drunkenlogoPalLen))
+DMA.copy(from: nds_asset_devkitlogoPal(), to: Background.vramEExtPalette(bg: 0, slot: 0)!, size: UInt32(devkitlogoPalLen))
+DMA.copy(from: nds_asset_drunkenlogoPal(), to: Background.vramEExtPalette(bg: 1, slot: 12)!, size: UInt32(drunkenlogoPalLen))
+DMA.copy(from: nds_asset_devkitlogoPal(), to: Background.vramHExtPalette(bg: 0, slot: 0)!, size: UInt32(devkitlogoPalLen))
+DMA.copy(from: nds_asset_drunkenlogoPal(), to: Background.vramHExtPalette(bg: 1, slot: 12)!, size: UInt32(drunkenlogoPalLen))
 
-vramSetBankE(VRAM_E_BG_EXT_PALETTE)
-vramSetBankH(VRAM_H_SUB_BG_EXT_PALETTE)
+Video.setBankE(VRAM_E_BG_EXT_PALETTE)
+Video.setBankH(VRAM_H_SUB_BG_EXT_PALETTE)
 
-while pmMainLoop() {
-	threadWaitForVBlank()
+while System.mainLoop {
+	System.waitForVBlank()
 	frames += 1
-	bgUpdate()
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+	Background.update()
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 
 	// scroll each background at a different rate
 	for i in Int32(0) ..< 8 {
-		bgSetScroll(i, frames / ((i & 3) + 1), frames / ((i & 3) + 1))
+		Background(id: i).setScroll(x: frames / ((i & 3) + 1), y: frames / ((i & 3) + 1))
 	}
 }
