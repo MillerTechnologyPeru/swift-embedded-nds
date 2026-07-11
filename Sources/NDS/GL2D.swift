@@ -15,6 +15,10 @@ public enum GL2D {
     /// End a 2D drawing batch (`glEnd2D`).
     @inline(__always) public static func end2D() { glEnd2D() }
 
+    /// Bind the texture a following `sprite`/`spriteRotate` draws from
+    /// (`glSetActiveTexture`) — used with the palette-swap color tables.
+    @inline(__always) public static func setActiveTexture(_ id: Int32) { glSetActiveTexture(id) }
+
     // MARK: Primitives (color is a packed 15-bit BGR value)
 
     @inline(__always) public static func putPixel(x: Int32, y: Int32, color: Int32) { glPutPixel(x, y, color) }
