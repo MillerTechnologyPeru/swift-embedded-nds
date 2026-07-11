@@ -316,7 +316,7 @@ func scrollHorizontalExRotation() {
 	DMA.copy(from: nds_asset_TextBackgroundsPal(), to: bgPal(), size: UInt32(TextBackgroundsPalLen))
 	let map = bg.mapPointer!
 	let layer = u16(nds_asset_Layer512x256Map())
-	_ = bgSetControlBits(bg.id, BG_WRAP_ON)
+	bg.setControlBits(BG_WRAP_ON)
 	for iy in 0 ..< 24 { DMA.copy(from: layer + iy * 64, to: map + iy * 64, size: 32 * 2) }
 	var scrollX = 0
 	while System.mainLoop {
@@ -347,7 +347,7 @@ func scroll4way(_ exrot: Bool) {
 	let tileMap = bg.mapPointer!
 	let leftHalf = tileMap, rightHalf = tileMap + 32 * 32
 	let layer = u16(nds_asset_Layer1024x1024Map())
-	if exrot { _ = bgSetControlBits(bg.id, BG_WRAP_ON) }
+	if exrot { bg.setControlBits(BG_WRAP_ON) }
 
 	let rowStride = exrot ? bgW : bgW   // text: dest stride per visible row = bgW
 	for iy in 0 ..< screenH { DMA.copy(from: layer + iy * mapWidth, to: tileMap + iy * rowStride, size: UInt32(screenW * 2)) }
