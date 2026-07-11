@@ -10,9 +10,13 @@
 //  DLDI/SD settings to exercise it; without one fatInitDefault simply fails and
 //  the sprite demo still runs.)
 //
+//  This example deliberately drives OAM and the display-capture registers by
+//  hand (via the Embedded `_Volatile` module) rather than through the libnds
+//  sprite API, so those parts stay raw; the surrounding setup uses the NDS overlay.
+//
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 import _Volatile
 
 //---------------------------------------------------------------------------------
@@ -22,7 +26,7 @@ let REG_DISPCNT    = VolatileMappedRegister<UInt32>(unsafeBitPattern: 0x04000000
 let REG_DISPCAPCNT = VolatileMappedRegister<UInt32>(unsafeBitPattern: 0x04000064)
 
 let SPRITE_GFX = UnsafeMutablePointer<UInt16>(bitPattern: 0x06400000)! // MM_VRAM_OBJ_A
-let OAM        = UnsafeMutableRawPointer(bitPattern: 0x07000000)!      // MM_OBJRAM
+let oamRAM     = UnsafeMutableRawPointer(bitPattern: 0x07000000)!      // MM_OBJRAM
 let VRAM_D     = UnsafeMutablePointer<UInt16>(bitPattern: 0x06860000)! // MM_VRAM_D (LCD)
 
 //---------------------------------------------------------------------------------
@@ -72,8 +76,8 @@ func initSprites() {
 
 func updateOAM() {
 	oam.withUnsafeBytes { buf in
-		DC_FlushRange(buf.baseAddress, 128 * 8)
-		dmaCopy(buf.baseAddress, OAM, 128 * 8)
+		Cache.flushDataRange(buf.baseAddress!, size: 128 * 8)
+		DMA.copy(from: buf.baseAddress!, to: oamRAM, size: 128 * 8)
 	}
 }
 
@@ -125,45 +129,45 @@ func screenshotBMP(_ filename: String) {
 		}
 	}
 
-	DC_FlushAll()
-	buf.withUnsafeBytes { _ = nds_write_file(filename, $0.baseAddress, UInt32(buf.count)) }
+	Cache.flushDataCache()
+	buf.withUnsafeBytes { _ = Filesystem.write($0.baseAddress!, length: UInt32(buf.count), to: filename) }
 }
 
 //---------------------------------------------------------------------------------
 // Setup
 //---------------------------------------------------------------------------------
-_ = nds_fat_init()
+Filesystem.initialize()
 
 // A+B mapped consecutively as 256 KB of sprite memory; C to BG; D to LCD (capture).
-vramSetPrimaryBanks(VRAM_A_MAIN_SPRITE, VRAM_B_MAIN_SPRITE,
-                    VRAM_C_MAIN_BG_0x06000000, VRAM_D_LCD)
+Video.setPrimaryBanks(VRAM_A_MAIN_SPRITE, VRAM_B_MAIN_SPRITE,
+                      VRAM_C_MAIN_BG_0x06000000, VRAM_D_LCD)
 
-videoSetMode(videoModeBase)
-consoleInit(nil, 0, BgType_Text4bpp, BgSize_T_256x256, 31, 0, true, true)
+Video.setMode(raw: videoModeBase)
+Console.initialize(nil, layer: 0, kind: .text4bpp, size: BgSize_T_256x256, mapBase: 31, tileBase: 0, mainDisplay: true)
 
 initSprites()
 
 // Direct-bitmap sprite (32x32 red)
-nds_puts("\u{1b}[1;1HDirect Bitmap:")
+Console.print("\u{1b}[1;1HDirect Bitmap:")
 oam[0] = ATTR0_BMP | ATTR0_ROTSCALE_DOUBLE | 10
 oam[1] = ATTR1_SIZE_32 | 20
 oam[2] = ATTR2_ALPHA(1) | 0
 for i in 0 ..< 32 * 32 { SPRITE_GFX[i] = RGB15(31, 0, 0) | (1 << 15) }
 
 // 256-colour sprite (blue)
-nds_puts("\u{1b}[9;1H256 color:")
+Console.print("\u{1b}[9;1H256 color:")
 oam[4] = ATTR0_COLOR_256 | ATTR0_ROTSCALE_DOUBLE | 75
 oam[5] = ATTR1_SIZE_32 | 20
 oam[6] = 64
-nds_sprite_palette()![1] = RGB15(0, 0, 31)
+OAM.mainPalette![1] = RGB15(0, 0, 31)
 for i in 0 ..< 32 * 16 { SPRITE_GFX[i + 64 * 16] = (1 << 8) | 1 }
 
 // 16-colour sprite (yellow, palette 1)
-nds_puts("\u{1b}[16;1H16 color:")
+Console.print("\u{1b}[16;1H16 color:")
 oam[8]  = ATTR0_COLOR_16 | ATTR0_ROTSCALE_DOUBLE | 135
 oam[9]  = ATTR1_SIZE_32 | 20
 oam[10] = ATTR2_PALETTE(1) | 96
-nds_sprite_palette()![17] = RGB15(31, 31, 0)
+OAM.mainPalette![17] = RGB15(31, 31, 0)
 for i in 0 ..< 32 * 8 { SPRITE_GFX[i + 96 * 16] = (1 << 12) | (1 << 8) | (1 << 4) | 1 }
 
 // initial affine matrix 0 = identity (256 == 1.0 in 1.7.8)
@@ -171,27 +175,27 @@ oam[3] = 256; oam[7] = 0; oam[11] = 0; oam[15] = 256
 
 var angle: Int32 = 0
 
-while pmMainLoop() {
+while System.mainLoop {
 	angle += 64
 
 	let a = Int16(truncatingIfNeeded: angle)
-	let hdx = cosLerp(a) >> 4
-	let hdy = sinLerp(a) >> 4
+	let hdx = Math.cos(a) >> 4
+	let hdy = Math.sin(a) >> 4
 	oam[3]  = UInt16(bitPattern: hdx)   // hdx
 	oam[7]  = UInt16(bitPattern: hdy)   // hdy
 	oam[11] = UInt16(bitPattern: -hdy)  // vdx = -hdy
 	oam[15] = UInt16(bitPattern: hdx)   // vdy =  hdx
 
-	threadWaitForVBlank()
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+	System.waitForVBlank()
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 
-	if keysDown() & KEY_A != 0 {
+	if Keys.down.contains(.a) {
 		screenshotBMP("shot.bmp")
 		REG_DISPCNT.store(MODE_FB1)        // show the captured framebuffer
 	}
-	if keysUp() & KEY_A != 0 {
-		videoSetMode(videoModeBase | DCAP_OFFSET(1))
+	if Keys.up.contains(.a) {
+		Video.setMode(raw: videoModeBase | DCAP_OFFSET(1))
 	}
 
 	updateOAM()
