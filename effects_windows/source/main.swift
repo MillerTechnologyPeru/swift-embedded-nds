@@ -7,42 +7,42 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
-videoSetMode(MODE_5_2D.rawValue)
-vramSetBankA(VRAM_A_MAIN_BG)
+Video.setMode(.mode5_2D)
+Video.setBankA(VRAM_A_MAIN_BG)
 
-let bg3 = bgInit(3, BgType_Bmp8, BgSize_B8_256x256, 0, 0)
+let bg3 = Background.main(layer: 3, kind: .bmp8, size: BgSize_B8_256x256, mapBase: 0, tileBase: 0)
 
-dmaCopy(nds_asset_drunkenlogoBitmap(), bgGetGfxPtr(bg3), UInt32(drunkenlogoBitmapLen))
-dmaCopy(nds_asset_drunkenlogoPal(), nds_bg_palette(), UInt32(drunkenlogoPalLen))
+DMA.copy(from: nds_asset_drunkenlogoBitmap(), to: bg3.gfxPointer!, size: UInt32(drunkenlogoBitmapLen))
+DMA.copy(from: nds_asset_drunkenlogoPal(), to: Background.palette!, size: UInt32(drunkenlogoPalLen))
 
-windowEnable(WINDOW_0)
-bgWindowEnable(bg3, WINDOW_0)
+Window.enable(.window0)
+Window.enableBackground(bg3, in: .window0)
 
 var x: Int32 = 60
 var y: Int32 = 60
 var size: Int32 = 100
 
-while pmMainLoop() {
-	scanKeys()
-	let keys = keysHeld()
-	if keys & KEY_START != 0 { break }
+while System.mainLoop {
+	Keys.scan()
+	let keys = Keys.held
+	if keys.contains(.start) { break }
 
-	if keys & KEY_UP != 0 { y -= 1 }
-	if keys & KEY_DOWN != 0 { y += 1 }
-	if keys & KEY_LEFT != 0 { x -= 1 }
-	if keys & KEY_RIGHT != 0 { x += 1 }
-	if keys & KEY_A != 0 { size -= 1 }
-	if keys & KEY_B != 0 { size += 1 }
+	if keys.contains(.up) { y -= 1 }
+	if keys.contains(.down) { y += 1 }
+	if keys.contains(.left) { x -= 1 }
+	if keys.contains(.right) { x += 1 }
+	if keys.contains(.a) { size -= 1 }
+	if keys.contains(.b) { size += 1 }
 
-	if keys & KEY_X != 0 {
-		bgWindowDisable(bg3, WINDOW_OUT)
-		bgWindowEnable(bg3, WINDOW_0)
+	if keys.contains(.x) {
+		Window.disableBackground(bg3, in: .outside)
+		Window.enableBackground(bg3, in: .window0)
 	}
-	if keys & KEY_Y != 0 {
-		bgWindowDisable(bg3, WINDOW_0)
-		bgWindowEnable(bg3, WINDOW_OUT)
+	if keys.contains(.y) {
+		Window.disableBackground(bg3, in: .window0)
+		Window.enableBackground(bg3, in: .outside)
 	}
 
 	if x < 0 { x = 0 }
@@ -50,9 +50,9 @@ while pmMainLoop() {
 	if y < 0 { y = 0 }
 	if y > 191 { y = 191 }   // SCREEN_HEIGHT - 1
 
-	threadWaitForVBlank()
+	System.waitForVBlank()
 
-	windowSetBounds(WINDOW_0,
-	                UInt8(x), UInt8(y),
-	                UInt8(truncatingIfNeeded: x + size), UInt8(truncatingIfNeeded: y + size))
+	Window.setBounds(.window0,
+	                 left: UInt8(x), top: UInt8(y),
+	                 right: UInt8(truncatingIfNeeded: x + size), bottom: UInt8(truncatingIfNeeded: y + size))
 }
