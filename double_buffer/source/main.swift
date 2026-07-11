@@ -7,24 +7,24 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
-videoSetMode(MODE_5_2D.rawValue)
+Video.setMode(.mode5_2D)
 
-vramSetPrimaryBanks(VRAM_A_MAIN_BG_0x06000000, VRAM_B_MAIN_BG_0x06020000,
-                    VRAM_C_SUB_BG, VRAM_D_LCD)
+Video.setPrimaryBanks(VRAM_A_MAIN_BG_0x06000000, VRAM_B_MAIN_BG_0x06020000,
+                      VRAM_C_SUB_BG, VRAM_D_LCD)
 
-consoleDemoInit()
-nds_puts("\n\n\tHello DS devers\n")
-nds_puts("\twww.drunkencoders.com\n")
-nds_puts("\tdouble buffer demo")
+Console.demoInit()
+Console.print("\n\n\tHello DS devers\n")
+Console.print("\twww.drunkencoders.com\n")
+Console.print("\tdouble buffer demo")
 
-let bg = bgInit(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0)
+let bg = Background.main(layer: 3, kind: .bmp16, size: BgSize_B16_256x256, mapBase: 0, tileBase: 0)
 
 var colorMask: Int32 = 0x1F
-var backBuffer = bgGetGfxPtr(bg)! + 256 * 256
+var backBuffer = bg.gfxPointer! + 256 * 256
 
-while pmMainLoop() {
+while System.mainLoop {
 	// draw a box of noise into the back buffer
 	for iy in 60 ..< (196 - 60) {
 		for ix in 60 ..< (256 - 60) {
@@ -32,18 +32,18 @@ while pmMainLoop() {
 		}
 	}
 
-	threadWaitForVBlank()
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+	System.waitForVBlank()
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 
 	// the visible buffer becomes the next back buffer
-	backBuffer = bgGetGfxPtr(bg)!
+	backBuffer = bg.gfxPointer!
 
 	// flip by swapping the map base (each base = 16KB; a screen is 128KB = 8 bases)
-	if bgGetMapBase(bg) == 8 {
-		bgSetMapBase(bg, 0)
+	if bg.mapBase == 8 {
+		bg.mapBase = 0
 	} else {
-		bgSetMapBase(bg, 8)
+		bg.mapBase = 8
 	}
 
 	colorMask ^= 0x3FF
