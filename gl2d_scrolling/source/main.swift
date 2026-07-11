@@ -7,7 +7,7 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 let MAP_WIDTH: Int32 = 32
 let MAP_HEIGHT: Int32 = 32
@@ -91,7 +91,7 @@ func drawMap(_ lvl: Level, _ tiles: UnsafePointer<glImage>) {
 			let i = Int(levelMap[Int(tx * MAP_HEIGHT + ty)])
 			let sx = (x * TILE_SIZE) - lvl.pixelX
 			let sy = (y * TILE_SIZE) - lvl.pixelY
-			glSprite(sx, sy, Int32(GL_FLIP_NONE.rawValue), tiles + i)
+			GL2D.sprite(x: sx, y: sy, flip: Int32(GL_FLIP_NONE.rawValue), tiles + i)
 		}
 	}
 }
@@ -110,66 +110,66 @@ crono.state = P_RIGHT
 
 initMap()
 
-videoSetMode(MODE_5_3D.rawValue)
-consoleDemoInit()
-glScreen2D()
+Video.setMode(.mode5_3D)
+Console.demoInit()
+GL2D.screen2D()
 
-vramSetBankA(VRAM_A_TEXTURE)
-vramSetBankE(VRAM_E_TEX_PALETTE)
+Video.setBankA(VRAM_A_TEXTURE)
+Video.setBankE(VRAM_E_TEX_PALETTE)
 
 cronoImages.withUnsafeMutableBufferPointer { buf in
-	_ = glLoadSpriteSet(buf.baseAddress, UInt32(CRONO_NUM_IMAGES),
-	                    nds_asset_crono_texcoords()!.assumingMemoryBound(to: UInt32.self),
-	                    GL_RGB256, Int32(TEXTURE_SIZE_256.rawValue), Int32(TEXTURE_SIZE_128.rawValue),
-	                    texParam, 256,
-	                    nds_asset_cronoPal()!.assumingMemoryBound(to: UInt16.self),
-	                    nds_asset_cronoBitmap()!.assumingMemoryBound(to: UInt8.self))
+	GL2D.loadSpriteSet(buf.baseAddress!, frames: UInt32(CRONO_NUM_IMAGES),
+	                   texcoords: nds_asset_crono_texcoords()!.assumingMemoryBound(to: UInt32.self),
+	                   type: GL_RGB256, sizeX: Int32(TEXTURE_SIZE_256.rawValue), sizeY: Int32(TEXTURE_SIZE_128.rawValue),
+	                   param: texParam, paletteWidth: 256,
+	                   palette: nds_asset_cronoPal()!.assumingMemoryBound(to: UInt16.self),
+	                   texture: nds_asset_cronoBitmap()!.assumingMemoryBound(to: UInt8.self))
 }
 tilesImages.withUnsafeMutableBufferPointer { buf in
-	_ = glLoadTileSet(buf.baseAddress, 16, 16, 256, 256,
-	                  GL_RGB256, Int32(TEXTURE_SIZE_256.rawValue), Int32(TEXTURE_SIZE_256.rawValue),
-	                  texParam, 256,
-	                  nds_asset_tilesPal()!.assumingMemoryBound(to: UInt16.self),
-	                  nds_asset_tilesBitmap()!.assumingMemoryBound(to: UInt8.self))
+	GL2D.loadTileSet(buf.baseAddress!, tileWidth: 16, tileHeight: 16, bmpWidth: 256, bmpHeight: 256,
+	                 type: GL_RGB256, sizeX: Int32(TEXTURE_SIZE_256.rawValue), sizeY: Int32(TEXTURE_SIZE_256.rawValue),
+	                 param: texParam, paletteWidth: 256,
+	                 palette: nds_asset_tilesPal()!.assumingMemoryBound(to: UInt16.self),
+	                 texture: nds_asset_tilesBitmap()!.assumingMemoryBound(to: UInt8.self))
 }
 
-nds_puts("\u{1b}[1;1HSCROLLING TEST")
-nds_puts("\u{1b}[3;1HArrow Keys to move")
-nds_puts("\u{1b}[6;1HRelminator")
-nds_puts("\u{1b}[7;1HHttp://Rel.Phatcode.Net")
+Console.print("\u{1b}[1;1HSCROLLING TEST")
+Console.print("\u{1b}[3;1HArrow Keys to move")
+Console.print("\u{1b}[6;1HRelminator")
+Console.print("\u{1b}[7;1HHttp://Rel.Phatcode.Net")
 
-while pmMainLoop() {
+while System.mainLoop {
 	crono.isWalking = false
-	scanKeys()
-	let key = keysHeld()
-	if key & KEY_RIGHT != 0 { crono.x += 1; crono.state = P_RIGHT; crono.isWalking = true }
-	if key & KEY_LEFT != 0  { crono.x -= 1; crono.state = P_LEFT; crono.isWalking = true }
-	if key & KEY_UP != 0    { crono.y -= 1; crono.state = P_UP; crono.isWalking = true }
-	if key & KEY_DOWN != 0  { crono.y += 1; crono.state = P_DOWN; crono.isWalking = true }
+	Keys.scan()
+	let key = Keys.held
+	if key.contains(.right) { crono.x += 1; crono.state = P_RIGHT; crono.isWalking = true }
+	if key.contains(.left)  { crono.x -= 1; crono.state = P_LEFT; crono.isWalking = true }
+	if key.contains(.up)    { crono.y -= 1; crono.state = P_UP; crono.isWalking = true }
+	if key.contains(.down)  { crono.y += 1; crono.state = P_DOWN; crono.isWalking = true }
 
 	animatePlayer(&crono)
 	cameraUpdate(&lvl, crono)
 
-	glBegin2D()
+	GL2D.begin2D()
 	tilesImages.withUnsafeBufferPointer { drawMap(lvl, $0.baseAddress!) }
 
 	let flip = crono.state < P_LEFT ? GL_FLIP_NONE.rawValue : GL_FLIP_H.rawValue
 	cronoImages.withUnsafeBufferPointer {
-		glSpriteRotate(crono.x - lvl.cameraX, crono.y - lvl.cameraY, 0, Int32(flip),
-		               $0.baseAddress! + Int(crono.gfxFrame))
+		GL2D.spriteRotate(x: crono.x - lvl.cameraX, y: crono.y - lvl.cameraY, angle: 0, flip: Int32(flip),
+		                  $0.baseAddress! + Int(crono.gfxFrame))
 	}
 
-	glPolyFmt(POLY_ALPHA(16) | UInt32(POLY_CULL_NONE.rawValue) | POLY_ID(1))
-	glBoxFilledGradient(0, 150, 255, 191,
-	                    rgb15(31, 0, 0), rgb15(0, 31, 0), rgb15(31, 0, 31), rgb15(0, 31, 31))
+	GL.polyFmt(POLY_ALPHA(16) | UInt32(POLY_CULL_NONE.rawValue) | POLY_ID(1))
+	GL2D.boxFilledGradient(x1: 0, y1: 150, x2: 255, y2: 191,
+	                       color1: rgb15(31, 0, 0), color2: rgb15(0, 31, 0), color3: rgb15(31, 0, 31), color4: rgb15(0, 31, 31))
 
-	glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
+	GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
 	for i in Int32(0) ..< 5 {
-		glBox(i, 150 + i, 255 - i, 191 - i, rgb15(31 - i * 5, i * 5, 31 - i * 3))
+		GL2D.box(x1: i, y1: 150 + i, x2: 255 - i, y2: 191 - i, color: rgb15(31 - i * 5, i * 5, 31 - i * 3))
 	}
-	glEnd2D()
+	GL2D.end2D()
 
-	glFlush(0)
-	threadWaitForVBlank()
-	if keysDown() & KEY_START != 0 { break }
+	GL.flush()
+	System.waitForVBlank()
+	if Keys.down.contains(.start) { break }
 }
