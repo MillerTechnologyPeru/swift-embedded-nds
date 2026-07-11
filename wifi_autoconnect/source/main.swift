@@ -10,32 +10,32 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
-_ = consoleDemoInit()
+Console.demoInit()
 
-nds_puts("\n\n\tSimple Wifi Connection Demo\n\n")
-nds_puts("Connecting via WFC data ...\n")
+Console.print("\n\n\tSimple Wifi Connection Demo\n\n")
+Console.print("Connecting via WFC data ...\n")
 
-if !Wifi_InitDefault(true) {   // WFC_CONNECT
-	nds_puts("Failed to connect!")
+if !Wifi.initDefault(useFirmwareSettings: true) {   // WFC_CONNECT
+	Console.print("Failed to connect!")
 } else {
-	nds_puts("Connected\n\n")
+	Console.print("Connected\n\n")
 
 	var gateway = in_addr(), mask = in_addr(), dns1 = in_addr(), dns2 = in_addr()
-	var ip = Wifi_GetIPInfo(&gateway, &mask, &dns1, &dns2)
+	var ip = Wifi.ipInfo(gateway: &gateway, netmask: &mask, dns1: &dns1, dns2: &dns2)
 
 	// inet_ntoa returns a pointer to a shared static buffer, so format and print
 	// one address at a time before the next call overwrites it.
-	nds_printf_str("ip     : %s\n", inet_ntoa(ip))
-	nds_printf_str("gateway: %s\n", inet_ntoa(gateway))
-	nds_printf_str("mask   : %s\n", inet_ntoa(mask))
-	nds_printf_str("dns1   : %s\n", inet_ntoa(dns1))
-	nds_printf_str("dns2   : %s\n", inet_ntoa(dns2))
+	Console.printf("ip     : %s\n", inet_ntoa(ip))
+	Console.printf("gateway: %s\n", inet_ntoa(gateway))
+	Console.printf("mask   : %s\n", inet_ntoa(mask))
+	Console.printf("dns1   : %s\n", inet_ntoa(dns1))
+	Console.printf("dns2   : %s\n", inet_ntoa(dns2))
 }
 
-while pmMainLoop() {
-	threadWaitForVBlank()
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+while System.mainLoop {
+	System.waitForVBlank()
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 }
