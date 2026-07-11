@@ -10,7 +10,7 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 let signalStrength = ["[   ]", "[.  ]", "[.i ]", "[.iI]"]
 let authTypes = [
@@ -35,20 +35,20 @@ func wifiSignalIsr() {
 
 	// pick the matching 16x16 frame out of the four loaded into sub sprite VRAM
 	let off = level * Int(wifiiconTilesLen) / (4 * MemoryLayout<UInt16>.size)
-	let gfx = UnsafeRawPointer(nds_sprite_gfx_sub()! + off)
-	oamSetGfx(&oamSub, 0, SpriteSize_16x16, SpriteColorFormat_16Color, gfx)
-	oamSetHidden(&oamSub, 0, !isActive)
-	oamUpdate(&oamSub)
+	let gfx = UnsafeRawPointer(OAM.subGfx! + off)
+	OAM.sub.setGfx(id: 0, size: SpriteSize_16x16, format: .color16, gfx: gfx)
+	OAM.sub.setHidden(id: 0, !isActive)
+	OAM.sub.update()
 }
 
 func keyPressed(_ c: Int32) {
-	if c > 0 { nds_printf_1i("%c", c) }
+	if c > 0 { Console.printf("%c", c) }
 }
 
 // Read a line from the keyboard; returns the buffer and length (-1 on EOF).
 func readLine64() -> ([CChar], Int32) {
 	var buf = [CChar](repeating: 0, count: 64)
-	let n = buf.withUnsafeMutableBufferPointer { nds_read_line($0.baseAddress, 64) }
+	let n = buf.withUnsafeMutableBufferPointer { Filesystem.readLine(into: $0.baseAddress!, size: 64) }
 	return (buf, n)
 }
 
@@ -58,70 +58,70 @@ func readLine64() -> ([CChar], Int32) {
 func findAP() -> UnsafeMutablePointer<WlanBssDesc>? {
 	var selected = 0
 	var displaytop = 0
-	var count: UInt32 = 0
-	var aplist: UnsafeMutablePointer<WlanBssDesc>? = nil
 
 	var filter = WlanBssScanFilter()
 	filter.channel_mask = 0xFFFFFFFF
 	filter.target_bssid = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)
 
 	while true {   // rescan target
-		if !wfcBeginScan(&filter) { return nil }
-		nds_puts("Scanning APs...\n")
+		if !Wifi.beginScan(filter: &filter) { return nil }
+		Console.print("Scanning APs...\n")
 
-		while pmMainLoop() {
-			aplist = wfcGetScanBssList(&count)
-			if aplist != nil { break }
-			threadWaitForVBlank()
-			scanKeys()
-			if keysDown() & KEY_START != 0 { exit(0) }
+		var list: UnsafeMutablePointer<WlanBssDesc>? = nil
+		var count: UInt32 = 0
+		while System.mainLoop {
+			let r = Wifi.scanResults()
+			if r.list != nil { list = r.list; count = r.count; break }
+			System.waitForVBlank()
+			Keys.scan()
+			if Keys.down.contains(.start) { exit(0) }
 		}
 
-		guard let list = aplist, count != 0 else {
-			nds_puts("No APs detected\n")
+		guard let aplist = list, count != 0 else {
+			Console.print("No APs detected\n")
 			return nil
 		}
 
 		var rescan = false
-		while pmMainLoop() {
-			threadWaitForVBlank()
-			scanKeys()
-			let pressed = keysDown()
-			if pressed & KEY_START != 0 { exit(0) }
-			if pressed & KEY_A != 0 { return list + selected }
+		while System.mainLoop {
+			System.waitForVBlank()
+			Keys.scan()
+			let pressed = Keys.down
+			if pressed.contains(.start) { exit(0) }
+			if pressed.contains(.a) { return aplist + selected }
 
-			consoleClear()
-			if pressed & KEY_R != 0 { rescan = true; break }
+			Console.clear()
+			if pressed.contains(.r) { rescan = true; break }
 
-			nds_printf_1i("%u APs detected (R = rescan)\n\n", Int32(bitPattern: count))
+			Console.printf("%u APs detected (R = rescan)\n\n", Int32(bitPattern: count))
 
 			var displayend = displaytop + 10
 			if displayend > Int(count) { displayend = Int(count) }
 
 			for i in displaytop ..< displayend {
-				let ap = list + i
+				let ap = aplist + i
 				var ssidBuf = [CChar](repeating: 0, count: 33)
-				nds_ap_get_ssid(ap, &ssidBuf)
+				ap.getSSID(into: &ssidBuf)
 
-				nds_puts(i == selected ? "*" : " ")
-				if nds_ap_ssid_len(ap) != 0 {
-					ssidBuf.withUnsafeBufferPointer { nds_printf_str("%.29s", $0.baseAddress) }
+				Console.print(i == selected ? "*" : " ")
+				if ap.ssidLength != 0 {
+					ssidBuf.withUnsafeBufferPointer { Console.printf("%.29s", $0.baseAddress!) }
 				} else {
-					nds_puts("-- Hidden SSID --")
+					Console.print("-- Hidden SSID --")
 				}
-				nds_puts("\n  ")
-				nds_puts(signalStrength[Int(wlanCalcSignalStrength(nds_ap_rssi(ap)))])
-				nds_puts(" Type:")
-				nds_puts(authTypes[Int(authMaskToType(nds_ap_auth_mask(ap)).rawValue)])
-				nds_puts("\n")
+				Console.print("\n  ")
+				Console.print(signalStrength[Int(wlanCalcSignalStrength(ap.rssi))])
+				Console.print(" Type:")
+				Console.print(authTypes[Int(authMaskToType(ap.authMask).rawValue)])
+				Console.print("\n")
 			}
 
-			if pressed & KEY_UP != 0 {
+			if pressed.contains(.up) {
 				selected -= 1
 				if selected < 0 { selected = 0 }
 				if selected < displaytop { displaytop = selected }
 			}
-			if pressed & KEY_DOWN != 0 {
+			if pressed.contains(.down) {
 				selected += 1
 				if selected >= Int(count) { selected = Int(count) - 1 }
 				displaytop = selected - 9
@@ -136,15 +136,15 @@ func findAP() -> UnsafeMutablePointer<WlanBssDesc>? {
 // "Press A to retry / B to quit" prompt between connection attempts.
 //---------------------------------------------------------------------------------
 func die(_ showMsgIn: Bool) -> Bool {
-	let showMsg = showMsgIn && pmMainLoop()
-	if showMsg { nds_puts("Press A to try again, B to quit\n") }
+	let showMsg = showMsgIn && System.mainLoop
+	if showMsg { Console.print("Press A to try again, B to quit\n") }
 
-	while pmMainLoop() {
-		threadWaitForVBlank()
-		scanKeys()
-		let pressed = keysDown()
-		if pressed & KEY_A != 0 { return true }
-		if pressed & (KEY_B | KEY_START) != 0 { break }
+	while System.mainLoop {
+		System.waitForVBlank()
+		Keys.scan()
+		let pressed = Keys.down
+		if pressed.contains(.a) { return true }
+		if !pressed.intersection([.b, .start]).isEmpty { break }
 	}
 	return false
 }
@@ -152,61 +152,61 @@ func die(_ showMsgIn: Bool) -> Bool {
 //---------------------------------------------------------------------------------
 // Setup
 //---------------------------------------------------------------------------------
-_ = consoleDemoInit()
+Console.demoInit()
 
-vramSetBankD(VRAM_D_SUB_SPRITE)
-oamInit(&oamSub, SpriteMapping_Bmp_1D_128, false)
+Video.setBankD(VRAM_D_SUB_SPRITE)
+OAM.sub.initialize(mapping: SpriteMapping_Bmp_1D_128)
 
-dmaCopy(nds_asset_wifiiconPal(),   nds_sprite_palette_sub(), UInt32(wifiiconPalLen))
-dmaCopy(nds_asset_wifiiconTiles(), nds_sprite_gfx_sub(),     UInt32(wifiiconTilesLen))
+DMA.copy(from: nds_asset_wifiiconPal(),   to: OAM.subPalette!, size: UInt32(wifiiconPalLen))
+DMA.copy(from: nds_asset_wifiiconTiles(), to: OAM.subGfx!,     size: UInt32(wifiiconTilesLen))
 
-oamSet(&oamSub, 0, 256 - 16, 0, 0, 0, SpriteSize_16x16, SpriteColorFormat_16Color,
-       nds_sprite_gfx_sub(), -1, false, false, false, false, false)
-oamSetHidden(&oamSub, 0, true)
-irqSet(IRQ_VBLANK, wifiSignalIsr)
+OAM.sub.set(id: 0, x: 256 - 16, y: 0, priority: 0, paletteAlpha: 0, size: SpriteSize_16x16, format: .color16,
+            gfx: OAM.subGfx)
+OAM.sub.setHidden(id: 0, true)
+IRQ.vblank.set(wifiSignalIsr)
 
-let kb = keyboardDemoInit()
+let kb = OnScreenKeyboard.demoInit()
 kb!.pointee.OnKeyPressed = keyPressed
 
-if !Wifi_InitDefault(false) {
-	nds_puts("Wifi init fail\n")
+if !Wifi.initDefault(useFirmwareSettings: false) {
+	Console.print("Wifi init fail\n")
 	_ = die(false)
 } else {
 	var auth = WlanAuthData()
 
 	repeat {
-		consoleClear()
-		consoleSetWindow(nil, 0, 0, 32, 24)
+		Console.clear()
+		Console.setWindow(nil, x: 0, y: 0, width: 32, height: 24)
 
 		guard let ap = findAP() else { continue }
 
-		consoleClear()
-		consoleSetWindow(nil, 0, 0, 32, 10)
+		Console.clear()
+		Console.setWindow(nil, x: 0, y: 0, width: 32, height: 10)
 
 		// hidden SSID: prompt for the name
-		if nds_ap_ssid_len(ap) == 0 {
-			nds_puts("Enter hidden SSID name\n")
+		if ap.ssidLength == 0 {
+			Console.print("Enter hidden SSID name\n")
 			while true {
 				let (buf, len) = readLine64()
 				if len < 0 { exit(0) }
 				if len > 0 && len <= Int32(WLAN_MAX_SSID_LEN) {
-					buf.withUnsafeBufferPointer { nds_ap_set_ssid(ap, $0.baseAddress, UInt32(len)) }
+					buf.withUnsafeBufferPointer { ap.setSSID($0.baseAddress!, length: UInt32(len)) }
 					break
 				}
-				nds_puts("Invalid SSID\n")
+				Console.print("Invalid SSID\n")
 			}
 		}
 
 		var ssidBuf = [CChar](repeating: 0, count: 33)
-		nds_ap_get_ssid(ap, &ssidBuf)
-		ssidBuf.withUnsafeBufferPointer { nds_printf_str("Connecting to %s\n", $0.baseAddress) }
+		ap.getSSID(into: &ssidBuf)
+		ssidBuf.withUnsafeBufferPointer { Console.printf("Connecting to %s\n", $0.baseAddress!) }
 
-		nds_ap_set_auth_type(ap, Int32(authMaskToType(nds_ap_auth_mask(ap)).rawValue))
+		ap.setAuthType(Int32(authMaskToType(ap.authMask).rawValue))
 		nds_auth_clear(&auth)
 
-		let authType = authMaskToType(nds_ap_auth_mask(ap))
+		let authType = authMaskToType(ap.authMask)
 		if authType.rawValue != WlanBssAuthType_Open.rawValue {
-			nds_printf_str("Enter %s key\n", authTypes[Int(authType.rawValue)])
+			Console.printf("Enter %s key\n", authTypes[Int(authType.rawValue)])
 			var finalType = authType
 			while true {
 				let (buf, len) = readLine64()
@@ -222,17 +222,17 @@ if !Wifi_InitDefault(false) {
 				} else if len < 1 || len >= Int32(WLAN_WPA_PSK_LEN) {
 					ok = false
 				}
-				if !ok { nds_puts("Invalid key!\n"); continue }
+				if !ok { Console.print("Invalid key!\n"); continue }
 
-				nds_ap_set_auth_type(ap, Int32(finalType.rawValue))
+				ap.setAuthType(Int32(finalType.rawValue))
 				if authType.rawValue < WlanBssAuthType_WPA_PSK_TKIP.rawValue {
 					buf.withUnsafeBufferPointer { nds_auth_set_wep(&auth, $0.baseAddress, UInt32(len)) }
 				} else {
-					nds_puts("Deriving PMK, please wait\n")
+					Console.print("Deriving PMK, please wait\n")
 					buf.withUnsafeBufferPointer { keyPtr in
 						ssidBuf.withUnsafeBufferPointer { ssidPtr in
-							_ = wfcDeriveWpaKey(&auth, ssidPtr.baseAddress, nds_ap_ssid_len(ap),
-							                    keyPtr.baseAddress, UInt32(len))
+							_ = Wifi.deriveWpaKey(into: &auth, ssid: ssidPtr.baseAddress!, ssidLen: ap.ssidLength,
+							                      key: keyPtr.baseAddress!, keyLen: UInt32(len))
 						}
 					}
 				}
@@ -240,45 +240,45 @@ if !Wifi_InitDefault(false) {
 			}
 		}
 
-		if !wfcBeginConnect(ap, &auth) { continue }
+		if !Wifi.beginConnect(to: ap, auth: &auth) { continue }
 
 		var isConnect = false
-		while pmMainLoop() {
-			threadWaitForVBlank()
-			scanKeys()
-			if keysDown() & KEY_START != 0 { exit(0) }
+		while System.mainLoop {
+			System.waitForVBlank()
+			Keys.scan()
+			if Keys.down.contains(.start) { exit(0) }
 
-			let status = Wifi_AssocStatus()
-			consoleClear()
-			nds_printf_str("%s\n", connStatus[Int(status)])
+			let status = Wifi.assocStatus
+			Console.clear()
+			Console.printf("%s\n", connStatus[Int(status)])
 
 			isConnect = status == Int32(ASSOCSTATUS_ASSOCIATED.rawValue)
 			if isConnect || status == Int32(ASSOCSTATUS_DISCONNECTED.rawValue) { break }
 		}
 
 		if isConnect {
-			let ip = Wifi_GetIP()
-			nds_printf_4i("Our IP: %u.%u.%u.%u\n",
-			              Int32(ip & 0xFF), Int32((ip >> 8) & 0xFF),
-			              Int32((ip >> 16) & 0xFF), Int32((ip >> 24) & 0xFF))
+			let ip = Wifi.ip
+			Console.printf("Our IP: %u.%u.%u.%u\n",
+			               Int32(ip & 0xFF), Int32((ip >> 8) & 0xFF),
+			               Int32((ip >> 16) & 0xFF), Int32((ip >> 24) & 0xFF))
 
 			while true {
-				nds_puts("Enter domain name\n")
+				Console.print("Enter domain name\n")
 				let (buf, len) = readLine64()
 				if len < 0 { break }
 				if len == 0 { break }
 				let host = buf.withUnsafeBufferPointer { gethostbyname($0.baseAddress) }
 				if let h = host, let addr0 = h.pointee.h_addr_list[0] {
 					let inaddr = addr0.withMemoryRebound(to: in_addr.self, capacity: 1) { $0.pointee }
-					nds_printf_str("Domain IP: %s\n", inet_ntoa(inaddr))
+					Console.printf("Domain IP: %s\n", inet_ntoa(inaddr))
 				} else {
-					nds_puts("Could not resolve domain\n")
+					Console.print("Could not resolve domain\n")
 				}
 			}
 
-			_ = Wifi_DisconnectAP()
+			_ = Wifi.disconnect()
 		}
 	} while die(true)
 }
 
-while pmMainLoop() { threadWaitForVBlank() }
+while System.mainLoop { System.waitForVBlank() }
