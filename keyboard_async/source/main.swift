@@ -6,22 +6,22 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
-consoleDemoInit()   // setup the sub screen for printing
+Console.demoInit()   // setup the sub screen for printing
 
-keyboardDemoInit()
-keyboardShow()
+OnScreenKeyboard.demoInit()
+OnScreenKeyboard.show()
 
-while pmMainLoop() {
-	let key = keyboardUpdate()
+while System.mainLoop {
+	let key = OnScreenKeyboard.update()
 
 	if key > 0 {
-		nds_printf_1i("%c", key)
+		Console.printf("%c", key)
 	}
 
-	threadWaitForVBlank()
-	scanKeys()
+	System.waitForVBlank()
+	Keys.scan()
 
-	if keysDown() & KEY_START != 0 { break }
+	if Keys.down.contains(.start) { break }
 }
