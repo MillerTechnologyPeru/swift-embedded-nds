@@ -7,31 +7,23 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
-
-// RGB15(r,g,b) macro, computed inline.
-@inline(__always)
-func rgb15(_ r: UInt16, _ g: UInt16, _ b: UInt16) -> UInt16 {
-	r | (g << 5) | (b << 10)
-}
-
-// KEY_TOUCH is defined as BIT(14) in libnds; the function-like BIT macro isn't
-// imported into Swift, so spell the bit out.
-let KEY_TOUCH: UInt32 = 1 << 14
+import NDS
 
 var touch = touchPosition()
 
-videoSetMode(MODE_0_2D.rawValue)
-videoSetModeSub(MODE_0_2D.rawValue)
+Video.setMode(.mode0_2D)
+Video.setModeSub(.mode0_2D)
 
-vramSetBankA(VRAM_A_MAIN_SPRITE)
-vramSetBankD(VRAM_D_SUB_SPRITE)
+Video.setBankA(VRAM_A_MAIN_SPRITE)
+Video.setBankD(VRAM_D_SUB_SPRITE)
 
-oamInit(&oamMain, SpriteMapping_1D_32, false)
-oamInit(&oamSub, SpriteMapping_1D_32, false)
+let main = OAM.main
+let sub = OAM.sub
+main.initialize(mapping: SpriteMapping_1D_32)
+sub.initialize(mapping: SpriteMapping_1D_32)
 
-let gfx = oamAllocateGfx(&oamMain, SpriteSize_16x16, SpriteColorFormat_256Color)!
-let gfxSub = oamAllocateGfx(&oamSub, SpriteSize_16x16, SpriteColorFormat_256Color)!
+let gfx = main.allocateGfx(size: SpriteSize_16x16, format: .color256)!
+let gfxSub = sub.allocateGfx(size: SpriteSize_16x16, format: .color256)!
 
 // fill both tiles with palette index 1 (two pixels packed per u16)
 for i in 0 ..< (16 * 16 / 2) {
@@ -39,50 +31,34 @@ for i in 0 ..< (16 * 16 / 2) {
 	gfxSub[i] = 1 | (1 << 8)
 }
 
-nds_sprite_palette()[1] = rgb15(31, 0, 0)
-nds_sprite_palette_sub()[1] = rgb15(0, 31, 0)
+OAM.mainPalette![1] = Color(r: 31, g: 0, b: 0).rawValue
+OAM.subPalette![1] = Color(r: 0, g: 31, b: 0).rawValue
 
-while pmMainLoop() {
-	scanKeys()
+while System.mainLoop {
+	Keys.scan()
 
-	let held = keysHeld()
+	let held = Keys.held
 
-	if held & KEY_TOUCH != 0 {
-		touchRead(&touch)
+	if held.contains(.touch) {
+		_ = Touch.read(into: &touch)
 	}
 
-	if held & KEY_START != 0 { break }
+	if held.contains(.start) { break }
 
-	oamSet(&oamMain,                      // main graphics engine context
-	       0,                             // oam index (0 to 127)
-	       Int32(touch.px), Int32(touch.py), // x and y pixel location
-	       0,                             // priority
-	       0,                             // palette index
-	       SpriteSize_16x16,
-	       SpriteColorFormat_256Color,
-	       gfx,                           // pointer to the loaded graphics
-	       -1,                            // sprite rotation data
-	       false,                         // double size when rotating?
-	       false,                         // hide the sprite?
-	       false, false,                  // hflip, vflip
-	       false)                         // mosaic
+	main.set(id: 0,                          // oam index (0 to 127)
+	         x: Int32(touch.px), y: Int32(touch.py),
+	         priority: 0, paletteAlpha: 0,
+	         size: SpriteSize_16x16, format: .color256,
+	         gfx: gfx)
 
-	oamSet(&oamSub,
-	       0,
-	       Int32(touch.px), Int32(touch.py),
-	       0,
-	       0,
-	       SpriteSize_16x16,
-	       SpriteColorFormat_256Color,
-	       gfxSub,
-	       -1,
-	       false,
-	       false,
-	       false, false,
-	       false)
+	sub.set(id: 0,
+	        x: Int32(touch.px), y: Int32(touch.py),
+	        priority: 0, paletteAlpha: 0,
+	        size: SpriteSize_16x16, format: .color256,
+	        gfx: gfxSub)
 
-	threadWaitForVBlank()
+	System.waitForVBlank()
 
-	oamUpdate(&oamMain)
-	oamUpdate(&oamSub)
+	main.update()
+	sub.update()
 }
