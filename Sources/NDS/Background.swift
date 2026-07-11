@@ -89,6 +89,11 @@ public struct Background {
     @inline(__always) public func setScale(sx: Int32, sy: Int32) { bgSetScale(id, sx, sy) }
     @inline(__always) public func setCenter(x: Int32, y: Int32) { bgSetCenter(id, x, y) }
     @inline(__always) public func wrap(_ on: Bool) { on ? bgWrapOn(id) : bgWrapOff(id) }
+
+    /// Set / clear raw bits in this background's control register
+    /// (`bgSetControlBits` / `bgClearControlBits`), e.g. the wrap-enable bit.
+    @inline(__always) public func setControlBits(_ bits: UInt16) { _ = bgSetControlBits(id, bits) }
+    @inline(__always) public func clearControlBits(_ bits: UInt16) { bgClearControlBits(id, bits) }
     @inline(__always) public func mosaic(_ on: Bool) { on ? bgMosaicEnable(id) : bgMosaicDisable(id) }
 }
 
