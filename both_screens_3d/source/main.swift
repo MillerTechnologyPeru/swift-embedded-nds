@@ -8,18 +8,17 @@
 //
 //---------------------------------------------------------------------------------
 
-import CNDS
+import NDS
 
 @inline(__always) func degreesToAngle(_ d: Int32) -> Int32 { d * (1 << 15) / 360 }
-@inline(__always) func inttof32(_ n: Int32) -> Int32 { n << 12 }
 
 var angle: Int32 = 0
 
 func renderCube(_ angle: Int32) {
-	glPushMatrix()
-	glTranslatef(0, 0, -4)
-	glRotatef32i(degreesToAngle(angle), inttof32(1), inttof32(1), inttof32(1))
-	glBegin(GL_QUADS)
+	GL.pushMatrix()
+	GL.translate(0, 0, -4)
+	GL.rotatef32i(degreesToAngle(angle), inttof32(1), inttof32(1), inttof32(1))
+	GL.begin(.quads)
 	let faces: [(Float, Float, Float)] = [
 		(-1, 1, 1), (1, 1, 1), (1, -1, 1), (-1, -1, 1),
 		(-1, 1, -1), (1, 1, -1), (1, -1, -1), (-1, -1, -1),
@@ -31,24 +30,24 @@ func renderCube(_ angle: Int32) {
 	let cols: [(UInt8, UInt8, UInt8)] = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0)]
 	for (i, v) in faces.enumerated() {
 		let c = cols[i % 4]
-		glColor3b(c.0, c.1, c.2)
-		glVertex3f(v.0, v.1, v.2)
+		GL.color(r: c.0, g: c.1, b: c.2)
+		GL.vertex(v.0, v.1, v.2)
 	}
-	glEnd()
-	glPopMatrix(1)
+	GL.end()
+	GL.popMatrix()
 }
 
 func renderPyramid(_ angle: Int32) {
-	glPushMatrix()
-	glTranslatef(0, 0, -4)
-	glRotatef32i(degreesToAngle(angle), inttof32(1), inttof32(1), inttof32(1))
-	glBegin(GL_QUADS)
-		glColor3b(255, 0, 0); glVertex3f(-1, -1, 1)
-		glColor3b(0, 255, 0); glVertex3f(1, -1, 1)
-		glColor3b(0, 0, 255); glVertex3f(1, -1, -1)
-		glColor3b(255, 255, 0); glVertex3f(-1, -1, -1)
-	glEnd()
-	glBegin(GL_TRIANGLES)
+	GL.pushMatrix()
+	GL.translate(0, 0, -4)
+	GL.rotatef32i(degreesToAngle(angle), inttof32(1), inttof32(1), inttof32(1))
+	GL.begin(.quads)
+		GL.color(r: 255, g: 0, b: 0); GL.vertex(-1, -1, 1)
+		GL.color(r: 0, g: 255, b: 0); GL.vertex(1, -1, 1)
+		GL.color(r: 0, g: 0, b: 255); GL.vertex(1, -1, -1)
+		GL.color(r: 255, g: 255, b: 0); GL.vertex(-1, -1, -1)
+	GL.end()
+	GL.begin(.triangles)
 	let tris: [(Float, Float, Float)] = [
 		(0, 1, 0), (-1, -1, 1), (1, -1, 1),
 		(0, 1, 0), (-1, -1, -1), (1, -1, -1),
@@ -58,11 +57,11 @@ func renderPyramid(_ angle: Int32) {
 	let cols: [(UInt8, UInt8, UInt8)] = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 	for (i, v) in tris.enumerated() {
 		let c = cols[i % 3]
-		glColor3b(c.0, c.1, c.2)
-		glVertex3f(v.0, v.1, v.2)
+		GL.color(r: c.0, g: c.1, b: c.2)
+		GL.vertex(v.0, v.1, v.2)
 	}
-	glEnd()
-	glPopMatrix(1)
+	GL.end()
+	GL.popMatrix()
 }
 
 func renderScene(_ top: Bool) {
@@ -70,43 +69,43 @@ func renderScene(_ top: Bool) {
 	angle += 1
 }
 
-videoSetMode(MODE_0_3D.rawValue)
-videoSetModeSub(MODE_5_2D.rawValue)
-glInit()
-nds_init_sub_sprites_grid()
-bgInitSub(3, BgType_Bmp16, BgSize_B16_256x256, 0, 0)
+Video.setMode(.mode0_3D)
+Video.setModeSub(.mode5_2D)
+GL.initialize()
+OAM.initSubSpritesGrid()
+_ = Background.sub(layer: 3, kind: .bmp16, size: BgSize_B16_256x256, mapBase: 0, tileBase: 0)
 
-glEnable(Int32(GL_ANTIALIAS.rawValue))
-glClearColor(0, 0, 0, 31)
-glClearPolyID(63)
-glClearDepth(0x7FFF)
-glViewport(0, 0, 255, 191)
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-gluPerspective(70, 256.0 / 192.0, 0.1, 100)
-glPolyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
+GL.enable(Int32(GL_ANTIALIAS.rawValue))
+GL.clearColor(r: 0, g: 0, b: 0, a: 31)
+GL.clearPolyID(63)
+GL.clearDepth(0x7FFF)
+GL.viewport(0, 0, 255, 191)
+GL.matrixMode(.projection)
+GL.loadIdentity()
+GL.perspective(fovy: 70, aspect: 256.0 / 192.0, near: 0.1, far: 100)
+GL.polyFmt(POLY_ALPHA(31) | UInt32(POLY_CULL_NONE.rawValue))
 
 var top = true
 
-while pmMainLoop() {
-	threadWaitForVBlank()
-	scanKeys()
-	if keysDown() & KEY_START != 0 { break }
+while System.mainLoop {
+	System.waitForVBlank()
+	Keys.scan()
+	if Keys.down.contains(.start) { break }
 
-	while nds_dispcap_busy() != 0 {}
+	while DisplayCapture.isBusy {}
 	top.toggle()
 	if top {
-		lcdMainOnBottom()
-		vramSetBankC(VRAM_C_LCD)
-		vramSetBankD(VRAM_D_SUB_SPRITE)
-		nds_dispcap_to_bank(2)
+		System.lcdMainOnBottom()
+		Video.setBankC(VRAM_C_LCD)
+		Video.setBankD(VRAM_D_SUB_SPRITE)
+		DisplayCapture.toBank(2)
 	} else {
-		lcdMainOnTop()
-		vramSetBankD(VRAM_D_LCD)
-		vramSetBankC(VRAM_C_SUB_BG)
-		nds_dispcap_to_bank(3)
+		System.lcdMainOnTop()
+		Video.setBankD(VRAM_D_LCD)
+		Video.setBankC(VRAM_C_SUB_BG)
+		DisplayCapture.toBank(3)
 	}
 
 	renderScene(top)
-	glFlush(0)
+	GL.flush()
 }
