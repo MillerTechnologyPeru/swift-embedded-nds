@@ -77,7 +77,7 @@ while System.mainLoop {
 	GL.matrixMode(.texture)
 	GL.loadIdentity()
 	var texScale = GLvector(x: 64 << 16, y: -64 << 16, z: 1 << 16)
-	glScalev(&texScale)   // scale normals from (-1,1) into texcoords
+	GL.scale(vector: &texScale)   // scale normals from (-1,1) into texcoords
 	GL.rotateXi(rotateX)  // rotate texture matrix to match the camera
 	GL.rotateYi(rotateY)
 
